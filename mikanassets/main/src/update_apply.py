@@ -2,16 +2,15 @@
 update_apply.py — 自己更新の実行役
 
 main.py から `os.execv` で起動される。役割は以下の通り:
-    1. ダウンロード済みの新しいリポジトリ内容で mikanassets/src を入れ替える
+    1. ダウンロード済みの新しいリポジトリ内容で mikanassets/main(src+assets)を入れ替える
     2. server.py(エントリファイル)自体も新しい内容に入れ替える
-    3. このスクリプト自身(mikanassets/update_apply.py)も次回用に最新化する
-    4. Discordの完了報告メッセージを編集する(可能な場合)
-    5. server.py を再起動する
+    3. Discordの完了報告メッセージを編集する(可能な場合)
+    4. server.py を再起動する
 
-このファイルは mikanassets/src の外(mikanassets直下)に複製されてから実行される。
-これは「自分自身が置き換え対象である src ディレクトリの中にいると、
-src を削除している最中に自分自身が消えてしまう」ことを避けるための設計。
-(main.py 起動時に、毎回 src 側の最新版が mikanassets 直下にコピーされる)
+このファイルは mikanassets/main/src/update_apply.py に置かれたまま実行される
+(要望により、mikanassets直下への複製は行わない)。
+Pythonはスクリプトの実行開始時点で既にソースを読み込み済みのため、
+実行中に自分自身が含まれるディレクトリを移動・削除しても動作に影響しない。
 
 引数:
     argv[1]: new_repo_root   ダウンロード・展開済みの新しいリポジトリのルートパス
@@ -60,36 +59,37 @@ def report_to_discord(channel_id: str, msg_id: str, token: str, content: str, lo
         logger.error("discord report failed:\n" + traceback.format_exc())
 
 
-def replace_src(new_repo_root: str, now_path: str, logger: logging.Logger) -> None:
-    new_src_dir = os.path.join(new_repo_root, "mikanassets", "src")
-    if not os.path.isdir(new_src_dir):
-        raise RuntimeError(f"new repository does not contain mikanassets/src/: {new_src_dir}")
+def replace_main(new_repo_root: str, now_path: str, logger: logging.Logger) -> None:
+    """mikanassets/main(src/ と assets/ をまとめて)を新しい内容に入れ替える"""
+    new_main_dir = os.path.join(new_repo_root, "mikanassets", "main")
+    if not os.path.isdir(new_main_dir):
+        raise RuntimeError(f"new repository does not contain mikanassets/main/: {new_main_dir}")
 
-    current_src_dir = os.path.join(now_path, "mikanassets", "src")
-    backup_src_dir = os.path.join(now_path, "mikanassets", "src_backup_before_update")
+    current_main_dir = os.path.join(now_path, "mikanassets", "main")
+    backup_main_dir = os.path.join(now_path, "mikanassets", "main_backup_before_update")
 
     # 失敗時に戻せるよう、入れ替え前に一旦バックアップへ退避してから新しいものを配置する
-    if os.path.exists(backup_src_dir):
-        shutil.rmtree(backup_src_dir)
-    if os.path.exists(current_src_dir):
-        shutil.move(current_src_dir, backup_src_dir)
+    if os.path.exists(backup_main_dir):
+        shutil.rmtree(backup_main_dir)
+    if os.path.exists(current_main_dir):
+        shutil.move(current_main_dir, backup_main_dir)
 
     try:
-        shutil.move(new_src_dir, current_src_dir)
+        shutil.move(new_main_dir, current_main_dir)
     except Exception:
         # 失敗したらバックアップを戻す
-        logger.error("failed to move new src. rolling back.\n" + traceback.format_exc())
-        if os.path.exists(current_src_dir):
-            shutil.rmtree(current_src_dir)
-        if os.path.exists(backup_src_dir):
-            shutil.move(backup_src_dir, current_src_dir)
+        logger.error("failed to move new mikanassets/main. rolling back.\n" + traceback.format_exc())
+        if os.path.exists(current_main_dir):
+            shutil.rmtree(current_main_dir)
+        if os.path.exists(backup_main_dir):
+            shutil.move(backup_main_dir, current_main_dir)
         raise
     else:
         # 成功したらバックアップは削除する
-        if os.path.exists(backup_src_dir):
-            shutil.rmtree(backup_src_dir)
+        if os.path.exists(backup_main_dir):
+            shutil.rmtree(backup_main_dir)
 
-    logger.info(f"replaced mikanassets/src -> {current_src_dir}")
+    logger.info(f"replaced mikanassets/main -> {current_main_dir}")
 
 
 def replace_entry_file(new_repo_root: str, now_path: str, now_file: str, logger: logging.Logger) -> None:
@@ -100,15 +100,6 @@ def replace_entry_file(new_repo_root: str, now_path: str, now_file: str, logger:
     dst_server_py = os.path.join(now_path, now_file)
     shutil.copy2(new_server_py, dst_server_py)
     logger.info(f"replaced entry file -> {dst_server_py}")
-
-
-def refresh_self(now_path: str, logger: logging.Logger) -> None:
-    """次回用に、入れ替え後のsrc内のupdate_apply.pyをmikanassets直下へ複製し直す"""
-    src_update_apply = os.path.join(now_path, "mikanassets", "src", "update_apply.py")
-    dst_update_apply = os.path.join(now_path, "mikanassets", "update_apply.py")
-    if os.path.isfile(src_update_apply):
-        shutil.copy2(src_update_apply, dst_update_apply)
-        logger.info("refreshed mikanassets/update_apply.py for next time")
 
 
 def cleanup_temp(new_repo_root: str, logger: logging.Logger) -> None:
@@ -144,9 +135,8 @@ def main() -> None:
     time.sleep(1.0)
 
     try:
-        replace_src(new_repo_root, now_path, logger)
+        replace_main(new_repo_root, now_path, logger)
         replace_entry_file(new_repo_root, now_path, now_file, logger)
-        refresh_self(now_path, logger)
         cleanup_temp(new_repo_root, logger)
     except Exception:
         logger.error("update failed:\n" + traceback.format_exc())

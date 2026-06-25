@@ -23,8 +23,8 @@ import urllib.error
 # 設定: 本体を配置している GitHub リポジトリ
 # ------------------------------------------------------------------
 # TODO: リポジトリを公開したら、ここを実際の owner/repo に書き換えてください。
-GITHUB_OWNER = "your-github-name"
-GITHUB_REPO = "your-repo-name"
+GITHUB_OWNER = "sleeping-mikan"
+GITHUB_REPO = "server-bot-v3"
 GITHUB_BRANCH = "main"
 
 # 上記から自動生成される、ブランチのzipballURL
@@ -35,7 +35,8 @@ GITHUB_ZIP_URL = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/archive/refs/
 # ------------------------------------------------------------------
 THIS_DIR = os.path.dirname(os.path.abspath(__file__))
 MIKANASSETS_DIR = os.path.join(THIS_DIR, "mikanassets")
-SRC_DIR = os.path.join(MIKANASSETS_DIR, "src")
+MAIN_DIR = os.path.join(MIKANASSETS_DIR, "main")
+SRC_DIR = os.path.join(MAIN_DIR, "src")
 MAIN_FILE = os.path.join(SRC_DIR, "main.py")
 
 
@@ -75,16 +76,26 @@ def download_and_extract_src() -> None:
         sys.exit(1)
     extracted_root = os.path.join(tmp_extract_dir, extracted_items[0])
 
-    # リポジトリ内の src/ ディレクトリ(本体)を mikanassets/src に配置する
-    # リポジトリ構成は "リポジトリ直下に src/" を想定。
-    # (mikanassets/src を直接リポジトリのルートとして公開しても良い)
-    candidate_src = os.path.join(extracted_root, "src")
-    if not os.path.isdir(candidate_src):
-        candidate_src = extracted_root  # リポジトリ直下がそのまま本体の場合
-
-    if os.path.exists(SRC_DIR):
-        shutil.rmtree(SRC_DIR)
-    shutil.move(candidate_src, SRC_DIR)
+    # リポジトリ内の mikanassets/main/ ディレクトリ(本体 src/ と データ assets/ の両方を含む)を
+    # mikanassets/main に配置する。リポジトリ構成は「リポジトリ直下に mikanassets/main/」を想定
+    # (ローカル配置と一致させている)。
+    candidate_main = os.path.join(extracted_root, "mikanassets", "main")
+    if not os.path.isdir(candidate_main):
+        # 後方互換: 旧構成(mikanassets/src/ や 直下src/、main/フォルダが無くsrcのみの場合)
+        candidate_src = os.path.join(extracted_root, "mikanassets", "src")
+        if not os.path.isdir(candidate_src):
+            candidate_src = os.path.join(extracted_root, "src")
+            if not os.path.isdir(candidate_src):
+                candidate_src = extracted_root
+        if os.path.exists(SRC_DIR):
+            shutil.rmtree(SRC_DIR)
+        os.makedirs(MAIN_DIR, exist_ok=True)
+        shutil.move(candidate_src, SRC_DIR)
+    else:
+        if os.path.exists(MAIN_DIR):
+            shutil.rmtree(MAIN_DIR)
+        os.makedirs(MIKANASSETS_DIR, exist_ok=True)
+        shutil.move(candidate_main, MAIN_DIR)
 
     shutil.rmtree(tmp_extract_dir)
 
@@ -92,7 +103,7 @@ def download_and_extract_src() -> None:
         print(f"[server.py] 本体の配置に失敗しました。main.pyが見つかりません: {MAIN_FILE}")
         sys.exit(1)
 
-    print(f"[server.py] 本体を配置しました: {SRC_DIR}")
+    print(f"[server.py] 本体を配置しました: {MAIN_DIR}")
 
 
 def run_main() -> int:
