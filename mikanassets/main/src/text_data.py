@@ -31,7 +31,7 @@ def _assets_path() -> str:
 
 def load_text_data(lang: str, allow_cmd: str = ""):
     """
-    text.json を読み込み、(HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME) を返す。
+    text.json を読み込み、(HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help初期値) を返す。
 
     allow_cmd: HELP_MSGの "/cmd serverin" の説明文に埋め込む、許可されたMinecraftコマンドの一覧文字列
                (元コードでは f-string でその場で埋め込んでいたものを、JSON側では
@@ -44,6 +44,7 @@ def load_text_data(lang: str, allow_cmd: str = ""):
     command_description = data["command_description"]
     response_msg = data["response_msg"].get(lang, data["response_msg"]["en"])
     activity_name = data["activity_name"].get(lang, data["activity_name"]["en"])
+    send_help_initial = data["send_help"].get(lang, data["send_help"]["en"])
 
     # allow_cmdプレースホルダの埋め込み(各言語分)
     for lang_key, msgs in help_msg.items():
@@ -51,4 +52,4 @@ def load_text_data(lang: str, allow_cmd: str = ""):
             if isinstance(value, str) and "{allow_cmd}" in value:
                 msgs[key] = value.format(allow_cmd=allow_cmd)
 
-    return help_msg, command_description, response_msg, activity_name
+    return help_msg, command_description, response_msg, activity_name, send_help_initial

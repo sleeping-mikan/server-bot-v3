@@ -914,7 +914,7 @@ use_stop = False
 
 async def get_text_dat():
     global HELP_MSG, COMMAND_DESCRIPTION, send_help, RESPONSE_MSG, ACTIVITY_NAME
-    HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME = load_text_data(lang, allow_cmd)
+    HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help = load_text_data(lang, allow_cmd)
     def make_send_help():
         global send_help
         send_help += f"web : http://{requests.get('https://api.ipify.org').text}:{web_port}\n"
