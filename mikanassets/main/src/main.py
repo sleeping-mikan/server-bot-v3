@@ -125,9 +125,6 @@ print()
 #起動した時刻
 start_time = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
 
-#外部変数
-token = None
-temp_path = None 
 
 #現在のディレクトリ
 # 本体(main.py)は mikanassets/src 内に配置されるが、.config/logs/mikanassets 等の
@@ -148,14 +145,7 @@ now_file = "server.py"
 if platform.system() == 'Windows':
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
-#/cmdに関する定数
-cmd_logs = deque(maxlen=100)
-
-
 status_lock = threading.Lock()
-discord_terminal_item = deque()
-discord_terminal_send_length = 0
-discord_loop_is_run = False
 
 # 濃い目の黄色
 from embeds import ModifiedEmbeds, bot_color, embed_under_line_url, embed_thumbnail_url
@@ -206,8 +196,6 @@ extension_tasks_func = []
 #--------------------
 
 
-#ログをdiscordにも返す可能性がある
-is_back_discord = False
 #--------------------
 
 
@@ -254,14 +242,6 @@ def is_stopped_server(logger: logging.Logger) -> bool:
         return True
     return False
 
-async def reload_config():
-    import json
-    with open(config_file_place, 'r') as f:
-        global config
-        config = json.load(f)
-        #TODO
-    
-
 async def rewrite_config(config: dict) -> bool:
     try:
         with open(config_file_place, 'w') as f:
@@ -277,7 +257,6 @@ async def rewrite_config(config: dict) -> bool:
 
 
 async def dircp_discord(src, dst, interaction: discord.Interaction, embed: ModifiedEmbeds.DefaultEmbed, symlinks=False) -> None:
-    global exist_files, copyed_files
     """
     src : コピー元dir
     dst : コピー先dir
@@ -309,8 +288,7 @@ async def dircp_discord(src, dst, interaction: discord.Interaction, embed: Modif
     send_sens = int(exist_files / max_send) if exist_files > max_send else 1
     copyed_files = 0
     async def copytree(src, dst, symlinks=False):
-        global copyed_files
-        nonlocal total_size, copied_size
+        nonlocal copyed_files, total_size, copied_size
         names = os.listdir(src)
         if not os.path.exists(dst):
             os.makedirs(dst)
@@ -358,7 +336,6 @@ async def dircp_discord(src, dst, interaction: discord.Interaction, embed: Modif
     
 #logger thread
 def server_logger(proc:subprocess.Popen,ret):
-    global is_back_discord,use_stop
     if log["server"]:
         file = open(file = server_path + "logs/server " + datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".log",mode = "w", encoding="utf-8")
     while True:
@@ -368,7 +345,7 @@ def server_logger(proc:subprocess.Popen,ret):
             sys_logger.error(e)
             continue
         # プロセスが終了している
-        if logs == '': 
+        if logs == '':
             if proc.poll() is not None:
                 break
             continue
@@ -381,15 +358,15 @@ def server_logger(proc:subprocess.Popen,ret):
         if log["server"]:
             file.write(logs + "\n")
             file.flush()
-        if is_back_discord:
-            cmd_logs.append(logs)
-            is_back_discord = False
+        if state.is_back_discord:
+            state.cmd_logs.append(logs)
+            state.is_back_discord = False
     #サーバーが終了したことをログに残す
     sys_logger.info('server is ended')
     #もし、stop命令が見当たらないなら、エラー出力をしておく
-    if not use_stop:
+    if not state.use_stop:
         sys_logger.error('stop command is not found')
-        use_stop = True
+        state.use_stop = True
     #プロセスを終了させる
     state.server_process.reset()
 
@@ -517,6 +494,8 @@ config_file_place = str(state.paths.config_file)
 
 
 config,config_changed = make_config(now_path, INITIAL_COMMAND_PERMISSION)
+# config は dict(ミュータブル)なので、state から同じ参照を持てば常に最新値になる
+state.config = config
 #整合性チェック
 to_config_safe(config, config_file_place)
 #ロガー作成前なので最小限の読み込み
@@ -607,11 +586,11 @@ try:
     now_dir = server_path.replace("\\","/").split("/")[-2]
     backup_path = normalize_path(config["discord_commands"]["backup"]["path"])
     lang = config["discord_commands"]["lang"]
-    bot_admin = config["discord_commands"]["admin"]["members"]
+    state.lang = lang
     flask_secret_key = config["web"]["secret_key"]
     web_port = config["web"]["port"]
     STOP = config["discord_commands"]["stop"]["submit"]
-    where_terminal = config["discord_commands"]["terminal"]["discord"]
+    state.where_terminal = config["discord_commands"]["terminal"]["discord"]
     is_auto_update = config["update"]["auto"]
     update_branch = config["update"]["branch"]
     enable_advanced_features = config["enable_advanced_features"]
@@ -625,8 +604,9 @@ try:
     use_flask_server = config["web"]["use_front_page"]
     server_char_code = config["server_char_encoding"]
     COMMAND_PERMISSION = config["discord_commands"]["permission"]["commands_level"]
+    state.COMMAND_PERMISSION = COMMAND_PERMISSION
     SUBPROCESS_PROCESS_TYPE = config["process_type"]
-    
+
 except KeyError:
     sys_logger.error("config file is broken. please delete .config and try again.")
     wait_for_keypress()
@@ -689,28 +669,12 @@ def save_mikanassets_dat():
         state.paths.dat_file.write_text('{"commit_id":' + f'"{get_self_commit_id()}"' + '}')
 save_mikanassets_dat()
     #os.system("curl https://www.dropbox.com/scl/fi/w93o5sndwaiuie0otorm4/update.py?rlkey=gh3gqbt39iwg4afey11p99okp&st=2i9a9dzp&dl=1 -o ./update.py")
-if not state.paths.web_dir.exists():
-    state.paths.web_dir.mkdir(parents=True, exist_ok=True)
-if not state.paths.web_index_file.exists() or do_init:
-    url='https://www.dropbox.com/scl/fi/04to7yrstmgdz9j09ljy2/index.html?rlkey=7q8eu0nooj8zy34dguwwsbkjd&st=4cb6y9sr&dl=1'
-    urlData = requests.get(url).content
-    state.paths.web_index_file.write_bytes(urlData)
-if not state.paths.web_login_file.exists() or do_init:
-    url='https://www.dropbox.com/scl/fi/6yuq2dhqozxeh8vxj8wgy/login.html?rlkey=9w9tbevra7r9vwjeofslb8j0x&st=sxtayji2&dl=1'
-    urlData = requests.get(url).content
-    state.paths.web_login_file.write_bytes(urlData)
-#mikanassets/web/usr/tokens.jsonを作成
+# mikanassets/web/usr/tokens.json を作成(ユーザーデータ。self-update の対象外)
 state.paths.web_usr_dir.mkdir(parents=True, exist_ok=True)
 if not state.paths.web_tokens_file.exists():
-    #ファイルを作成
     tokenfile_items = {"tokens":[]}
     state.paths.web_tokens_file.write_text(json.dumps(tokenfile_items,indent=4), encoding="utf-8")
     del tokenfile_items
-state.paths.web_pictures_dir.mkdir(parents=True, exist_ok=True)
-if not state.paths.web_icon_file.exists() or do_init:
-    url = 'https://www.dropbox.com/scl/fi/cr6uejk7s2vk4zevm8zc6/boticon.png?rlkey=szuisf29w1rnynz9xs9ucr24l&st=a8kuy1fd&dl=1'
-    urlData = requests.get(url).content
-    state.paths.web_icon_file.write_bytes(urlData)
 
 def read_web_tokens():
     tokens = json.loads(state.paths.web_tokens_file.read_text(encoding="utf-8"))["tokens"]
@@ -719,7 +683,6 @@ def read_web_tokens():
 web_tokens = read_web_tokens()
 
 def make_token_file():
-    global token
     #./.tokenが存在しなければ.tokenを作成する
     if not state.paths.token_file.exists():
         state.paths.token_file.write_text("ここにtokenを入力", encoding="utf-8")
@@ -728,21 +691,15 @@ def make_token_file():
         wait_for_keypress()
     #存在するならtokenを読み込む(json形式)
     else:
-        token = state.paths.token_file.read_text(encoding="utf-8")
+        state.token = state.paths.token_file.read_text(encoding="utf-8")
 
 def make_temp():
-    global temp_path
-    #tempファイルの作成場所
     if platform.system() == 'Windows':
-        # %temp%/mcserver を作成
-        temp_path = os.environ.get('TEMP') + "/mcserver"
+        state.temp_path = os.environ.get('TEMP') + "/mcserver"
     else:
-        # /tmp/mcserver を作成
-        temp_path = "/tmp/mcserver"
-
-    #tempファイルの作成
-    if not os.path.exists(temp_path):
-        os.mkdir(temp_path)
+        state.temp_path = "/tmp/mcserver"
+    if not os.path.exists(state.temp_path):
+        os.mkdir(state.temp_path)
 
 async def update_self_if_commit_changed(interaction: discord.Interaction | None = None,embed: ModifiedEmbeds.DefaultEmbed | None = None, text_pack: dict | None = None, sender = None, is_force = False):
     # ファイルが存在しなければ作る
@@ -801,7 +758,7 @@ async def update_self_if_commit_changed(interaction: discord.Interaction | None 
             await sender(interaction=interaction,embed=embed)
         return
     # temp_path/new_repo に展開する(既存があれば消してから展開し直す)
-    new_repo_extract_dir = os.path.join(temp_path, "new_repo")
+    new_repo_extract_dir = os.path.join(state.temp_path, "new_repo")
     if os.path.exists(new_repo_extract_dir):
         rmtree(new_repo_extract_dir)
     os.makedirs(new_repo_extract_dir)
@@ -838,7 +795,7 @@ async def update_self_if_commit_changed(interaction: discord.Interaction | None 
         now_file,           # エントリファイル名(通常 "server.py")
         msg_id,
         channel_id,
-        token,              # 完了報告メッセージ編集用のbotトークン
+        state.token,        # 完了報告メッセージ編集用のbotトークン
     ])
 
 
@@ -879,8 +836,6 @@ if SUBPROCESS_PROCESS_TYPE == "mc-server":
     properties = properties_to_dict(server_path + "server.properties")
     sys_logger.info("read properties file -> " + server_path + "server.properties")
 
-#コマンド利用ログ
-use_stop = False
 #--------------------
 
 
@@ -891,17 +846,23 @@ use_stop = False
 
 
 async def get_text_dat():
-    global HELP_MSG, COMMAND_DESCRIPTION, send_help, RESPONSE_MSG, ACTIVITY_NAME
-    HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help = load_text_data(lang, allow_cmd)
+    global HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME
+    HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help = load_text_data(state.lang, allow_cmd)
     def make_send_help():
-        global send_help
+        nonlocal send_help
         send_help += f"web : http://{requests.get('https://api.ipify.org').text}:{web_port}\n"
         embed = ModifiedEmbeds.DefaultEmbed(title="How to use this bot")
-        for key in HELP_MSG[lang]:
-            embed.add_field(name=key,value=HELP_MSG[lang][key],inline=False)
+        for key in HELP_MSG[state.lang]:
+            embed.add_field(name=key,value=HELP_MSG[state.lang][key],inline=False)
         embed.add_field(name="detail",value=send_help,inline=False)
         send_help = embed
     make_send_help()
+    # state に同期(commands/*.py がここから読む)
+    state.HELP_MSG = HELP_MSG
+    state.COMMAND_DESCRIPTION = COMMAND_DESCRIPTION
+    state.RESPONSE_MSG = RESPONSE_MSG
+    state.ACTIVITY_NAME = ACTIVITY_NAME
+    state.send_help = send_help
 
 
 get_text = asyncio.run(get_text_dat())
@@ -935,11 +896,10 @@ if config_changed: sys_logger.info("added config because necessary elements were
 
 @tasks.loop(seconds=10)
 async def update_loop():
-    global discord_terminal_item, discord_terminal_send_length, discord_loop_is_run
     # discord_loop_is_runを確認(2回以上実行された場合は処理をしない)
-    if discord_loop_is_run: return
+    if state.discord_loop_is_run: return
     try:
-        discord_loop_is_run = True
+        state.discord_loop_is_run = True
         with status_lock:
             if not state.server_process.is_stopped():
                 await client.change_presence(activity=discord.Game(name=ACTIVITY_NAME["running"].format(server_name)))
@@ -947,9 +907,9 @@ async def update_loop():
                 await client.change_presence(activity=discord.Game(name=ACTIVITY_NAME["ended"]))
             # discord_log_msgにデータがあれば送信
             # 送信が無効の場合
-            if where_terminal == False:
+            if state.where_terminal == False:
                 discord_log_msg.clear()
-                discord_loop_is_run = False
+                state.discord_loop_is_run = False
                 return
             pop_flg = False
             while len(discord_log_msg) > 0:
@@ -957,30 +917,30 @@ async def update_loop():
                     discord_log_msg.popleft()
                     pop_flg = True
                 if pop_flg:
-                    await client.get_channel(where_terminal).send(f"データ件数が{terminal_capacity}件を超えたため以前のデータを破棄しました。より多くのログを出力するには.config内のterminal.capacityを変更してください。")
+                    await client.get_channel(state.where_terminal).send(f"データ件数が{terminal_capacity}件を超えたため以前のデータを破棄しました。より多くのログを出力するには.config内のterminal.capacityを変更してください。")
                     pop_flg = False
                 if len(discord_log_msg[0]) >= 1900:
                     discord_log_msg.popleft()
                     raise Exception("message is too long(skipped)")
-                discord_terminal_send_length += len(discord_log_msg[0]) + 1
-                if discord_terminal_send_length >= 1900:
+                state.discord_terminal_send_length += len(discord_log_msg[0]) + 1
+                if state.discord_terminal_send_length >= 1900:
                     # 送信処理(where_terminal chに送信)
-                    await client.get_channel(where_terminal).send("```ansi\n" + ''.join(discord_terminal_item) + "\n```")
+                    await client.get_channel(state.where_terminal).send("```ansi\n" + ''.join(state.discord_terminal_item) + "\n```")
                     # discord_terminal_itemをリセット
-                    discord_terminal_item = deque()
-                    discord_terminal_send_length = len(discord_log_msg[0]) + 1
+                    state.discord_terminal_item = deque()
+                    state.discord_terminal_send_length = len(discord_log_msg[0]) + 1
                     # 連投を避けるためにsleep
                     await asyncio.sleep(1)
-                discord_terminal_item.append(discord_log_msg.popleft() + "\n")
+                state.discord_terminal_item.append(discord_log_msg.popleft() + "\n")
             # 残っていれば送信
-            if len(discord_terminal_item) > 0:
-                await client.get_channel(where_terminal).send("```ansi\n" + ''.join(discord_terminal_item) + "\n```")
-                discord_terminal_item = deque()
-                discord_terminal_send_length = 0
-        discord_loop_is_run = False
+            if len(state.discord_terminal_item) > 0:
+                await client.get_channel(state.where_terminal).send("```ansi\n" + ''.join(state.discord_terminal_item) + "\n```")
+                state.discord_terminal_item = deque()
+                state.discord_terminal_send_length = 0
+        state.discord_loop_is_run = False
     except Exception as e:
         terminal_logger.error(e)
-        discord_loop_is_run = False
+        state.discord_loop_is_run = False
 
 # メッセージが送信されたときの処理
 @client.event
@@ -990,7 +950,7 @@ async def on_message(message: discord.Message):
         if message.author == client.user:
             return
         # terminal ch以外のメッセージは無視
-        if message.channel.id != where_terminal:
+        if message.channel.id != state.where_terminal:
             return
         # 管理者以外をはじく
         if not await is_administrator(message.author) and not await is_force_administrator(message.author):
@@ -1062,16 +1022,14 @@ async def on_ready():
 
 
 def core_stop() -> str:
-    global use_stop
     if is_stopped_server(stop_logger):
         return RESPONSE_MSG["other"]["is_not_running"]
-    use_stop = True
+    state.use_stop = True
     stop_logger.info('server stopping')
     state.server_process.write(STOP)
     return RESPONSE_MSG["stop"]["success"]
 
 def core_start() -> str:
-    global use_stop
     if is_running_server(start_logger):
         return RESPONSE_MSG["other"]["is_running"]
     start_logger.info('server starting')
@@ -1117,7 +1075,6 @@ async def start(interaction: discord.Interaction):
 #/stop
 @tree.command(name="stop",description=COMMAND_DESCRIPTION[lang]["stop"])
 async def stop(interaction: discord.Interaction):
-    global use_stop
     await print_user(stop_logger,interaction.user)
     #管理者権限を要求
     if await user_permission(interaction.user) < COMMAND_PERMISSION["stop"]: 
@@ -1157,9 +1114,6 @@ async def change(interaction: discord.Interaction,level: int,user:discord.User):
     if await user_permission(interaction.user) < COMMAND_PERMISSION["permission change"]:
         await not_enough_permission(interaction,lang_logger)
         return
-    async def read_force_admin():
-        global bot_admin
-        bot_admin = config["discord_commands"]["admin"]["members"]
     # 権限レベル1~4を付与
     if level >= 1 and level <= USER_PERMISSION_MAX:
         if user.id in config["discord_commands"]["admin"]["members"]:
@@ -1167,9 +1121,7 @@ async def change(interaction: discord.Interaction,level: int,user:discord.User):
             await interaction.response.send_message(embed=embed)
             return
         config["discord_commands"]["admin"]["members"][str(user.id)] = level
-        #configファイルを変更する
         await rewrite_config(config)
-        await read_force_admin()
         embed.add_field(name="",value=RESPONSE_MSG["permission"]["change"]["add_success"].format(user),inline=False)
         await interaction.response.send_message(embed=embed)
         admin_logger.info(f"exec force admin add {user}")
@@ -1179,9 +1131,7 @@ async def change(interaction: discord.Interaction,level: int,user:discord.User):
             await interaction.response.send_message(embed=embed)
             return
         config["discord_commands"]["admin"]["members"].pop(str(user.id))
-        #configファイルを変更する
         await rewrite_config(config)
-        await read_force_admin()
         embed.add_field(name="",value=RESPONSE_MSG["permission"]["change"]["remove_success"].format(user),inline=False)
         await interaction.response.send_message(embed=embed)
         admin_logger.info(f"exec force admin remove {user}")
@@ -1230,14 +1180,13 @@ async def language(interaction: discord.Interaction,language:str):
     lang : str "en"/"ja"
     """
     await print_user(lang_logger,interaction.user)
-    global lang
     #管理者権限を要求
     if await user_permission(interaction.user) < COMMAND_PERMISSION["lang"]:
         await not_enough_permission(interaction,lang_logger)
         return
     #データの書き換え
     config["discord_commands"]["lang"] = language
-    lang = config["discord_commands"]["lang"]
+    state.lang = config["discord_commands"]["lang"]
     #configファイルを変更する
     await rewrite_config(config)
     #textデータを再構築
@@ -1245,7 +1194,7 @@ async def language(interaction: discord.Interaction,language:str):
     embed = ModifiedEmbeds.DefaultEmbed(title = f"/lang {language}")
     embed.add_field(name="",value=RESPONSE_MSG["lang"]["success"].format(language))
     await interaction.response.send_message(embed=embed)
-    lang_logger.info("change lang to " + lang)
+    lang_logger.info("change lang to " + state.lang)
 
 #/cmd serverin <server command>
 #/cmd stdin 
@@ -1278,7 +1227,6 @@ serverin_logger = cmd_logger.getChild("serverin")
 async def cmd(interaction: discord.Interaction,command:str):
     await print_user(serverin_logger,interaction.user)
     embed = ModifiedEmbeds.DefaultEmbed(title= f"/cmd serverin {command}")
-    global is_back_discord,cmd_logs
     #管理者権限を要求
     if await user_permission(interaction.user) < COMMAND_PERMISSION["cmd serverin"]: 
         await not_enough_permission(interaction,serverin_logger)
@@ -1304,14 +1252,14 @@ async def cmd(interaction: discord.Interaction,command:str):
         await interaction.response.send_message(embed=embed)
         return
     #結果の返却を要求する
-    is_back_discord = True
+    state.is_back_discord = True
     #結果を送信できるまで待機
     while True:
         #何もなければ次を待つ
-        if len(cmd_logs) == 0:
+        if len(state.cmd_logs) == 0:
             await asyncio.sleep(0.1)
             continue
-        embed.add_field(name="",value=cmd_logs.popleft(),inline=False)
+        embed.add_field(name="",value=state.cmd_logs.popleft(),inline=False)
         await interaction.response.send_message(embed=embed)
         break
 #--------------------
@@ -1890,7 +1838,6 @@ async def backup(interaction: discord.Interaction,path:str):
     from_backup = normalize_path(os.path.join(server_path,path))
     world_name = path
     await print_user(backup_logger,interaction.user)
-    global exist_files, copyed_files
     embed = ModifiedEmbeds.DefaultEmbed(title= f"/backup create {world_name}")
     #管理者権限を要求
     if await user_permission(interaction.user) < COMMAND_PERMISSION["backup create"]:
@@ -2243,12 +2190,10 @@ async def tokengen(interaction: discord.Interaction):
 
 command_group_terminal = app_commands.Group(name="terminal",description="terminal group")
 
-async def change_terminal_ch(channel: int | bool, logger: logging.Logger):    
-    global where_terminal
-    #terminalを無効化
-    where_terminal = channel
-    config["discord_commands"]["terminal"]["discord"] = where_terminal
-    logger.info(f"terminal setting -> {where_terminal}")
+async def change_terminal_ch(channel: int | bool, logger: logging.Logger):
+    state.where_terminal = channel
+    config["discord_commands"]["terminal"]["discord"] = state.where_terminal
+    logger.info(f"terminal setting -> {state.where_terminal}")
     await rewrite_config(config=config)
 
 
@@ -2260,7 +2205,6 @@ terminal_set_logger = terminal_logger.getChild("set")
 #/terminal
 @command_group_terminal.command(name="set",description=COMMAND_DESCRIPTION[lang]["terminal"]["set"])
 async def terminal_set(interaction: discord.Interaction, channel:discord.TextChannel = None):
-    global where_terminal
     await print_user(terminal_set_logger,interaction.user)
     embed = ModifiedEmbeds.DefaultEmbed(title= f"/terminal set {channel}")
     # 権限レベルが足りていないなら
@@ -2269,7 +2213,7 @@ async def terminal_set(interaction: discord.Interaction, channel:discord.TextCha
         return
     #発言したチャンネルをwhere_terminalに登録
     await change_terminal_ch(channel.id if channel else interaction.channel.id, terminal_set_logger)
-    embed.add_field(name="",value=RESPONSE_MSG["terminal"]["success"].format(where_terminal),inline=False)
+    embed.add_field(name="",value=RESPONSE_MSG["terminal"]["success"].format(state.where_terminal),inline=False)
     await interaction.response.send_message(embed=embed)
 #--------------------
 
@@ -2282,7 +2226,6 @@ terminal_delete_logger = terminal_logger.getChild("delete")
 #/terminal
 @command_group_terminal.command(name="del",description=COMMAND_DESCRIPTION[lang]["terminal"]["del"])
 async def terminal_set(interaction: discord.Interaction):
-    global where_terminal
     await print_user(terminal_delete_logger,interaction.user)
     embed = ModifiedEmbeds.DefaultEmbed(title= f"/terminal del")
     # 権限レベルが足りていないなら
@@ -2291,7 +2234,7 @@ async def terminal_set(interaction: discord.Interaction):
         return
     #発言したチャンネルをwhere_terminalに登録
     await change_terminal_ch(False, terminal_delete_logger)
-    embed.add_field(name="",value=RESPONSE_MSG["terminal"]["success"].format(where_terminal),inline=False)
+    embed.add_field(name="",value=RESPONSE_MSG["terminal"]["success"].format(state.where_terminal),inline=False)
     await interaction.response.send_message(embed=embed)
 
 #--------------------
@@ -2457,7 +2400,7 @@ async def status(interaction: discord.Interaction):
 @tree.command(name="help",description=COMMAND_DESCRIPTION[lang]["help"])
 async def help(interaction: discord.Interaction):
     await print_user(help_logger,interaction.user)
-    await interaction.response.send_message(embed=send_help)
+    await interaction.response.send_message(embed=state.send_help)
     help_logger.info('help sent')
 
 #/exit
@@ -2495,18 +2438,16 @@ def append_tasks_func(func):
     extension_tasks_func.append(func)
     return
 
-is_write_server_block = False
 def write_server_in(command: str):
-    global is_write_server_block
-    if is_write_server_block:
+    if state.is_write_server_block:
         return False, "write_server_block"
-    is_write_server_block = True
+    state.is_write_server_block = True
     # サーバーが動いていれば、コマンドを送る
     if is_stopped_server(sys_logger):
-        is_write_server_block = False
+        state.is_write_server_block = False
         return False, "server_is_not_running"
     state.server_process.write(command)
-    is_write_server_block = False
+    state.is_write_server_block = False
     return True, "success"
 #--------------------
 
@@ -2514,10 +2455,7 @@ def write_server_in(command: str):
 #--------------------
 
 base_extension_logger.info("search extension commands")
-extension_commands_group = None
-extension_logger = None
 def read_extension_commands():
-    global extension_commands_group,extension_logger
     extension_commands_groups = deque()
     extension_dir = state.paths.extension_dir
     sys_logger.info("read extension commands ->" + extension_dir.as_posix())
@@ -2527,15 +2465,15 @@ def read_extension_commands():
         if entry.is_dir():
             sys_logger.info("read extension commands ->" + entry.as_posix())
             if extension_command_file_path.exists():
-                # <拡張名>コマンドグループを作成
-                extension_commands_group = app_commands.Group(name="extension-" + entry.name,description="This commands group is extention.\nUse this code at your own risk." + entry.name)
-                extension_commands_groups.append(extension_commands_group)
+                # <拡張名>コマンドグループを作成(拡張側は state.extension_commands_group で参照)
+                state.extension_commands_group = app_commands.Group(name="extension-" + entry.name,description="This commands group is extention.\nUse this code at your own risk." + entry.name)
+                extension_commands_groups.append(state.extension_commands_group)
                 # 拡張moduleが/mikanassets/extension/<拡張名>/commans.pyにある場合は読み込む
                 try:
-                    extension_logger = base_extension_logger.getChild(entry.name)
+                    state.extension_logger = base_extension_logger.getChild(entry.name)
                     importlib.import_module("mikanassets.extension." + entry.name + ".commands")
                     # コマンドを追加
-                    tree.add_command(extension_commands_group)
+                    tree.add_command(state.extension_commands_group)
                     sys_logger.info("read extension commands success -> " + extension_command_file_path.as_posix())
                 except Exception as e:
                     sys_logger.info("cannot read extension commands " + extension_command_file_path.as_posix() + f"({e})")
@@ -2545,6 +2483,7 @@ def read_extension_commands():
             sys_logger.info("not directory -> " + entry.as_posix())
 
     unti_GC_obj.append(extension_commands_groups)
+    state.extension_commands_group = None  # ロード完了後はリセット
 
 extension_path = state.paths.extension_dir.as_posix()
 # mikanassets/extension/<extension_dir>にディレクトリが存在すれば
@@ -2554,7 +2493,6 @@ if os.path.exists(extension_path):
         read_extension_commands()
     else:
         sys_logger.info("no extension commands in " + extension_path)
-del extension_commands_group
 del extension_path
 
 #--------------------
@@ -2802,7 +2740,6 @@ def flask_backup_server():
 
 @app.route('/submit_data', methods=['POST'])
 def submit_data():
-    global use_stop
     if not is_valid_session(session['token']):
         # ログアウト
         session["logout_reason"] = "This token has expired. create new token."
@@ -2815,7 +2752,7 @@ def submit_data():
 
     #もし入力されたコマンドがstopだったら
     if user_input == STOP:
-        use_stop = True
+        state.use_stop = True
 
     #サーバーの標準入力に入力
     state.server_process.write(user_input)
@@ -2854,4 +2791,4 @@ if log["all"]:
 
 
 # 事実上のエントリポイント(client.runを実行)
-client.run(token, log_formatter=console_formatter)
+client.run(state.token, log_formatter=console_formatter)

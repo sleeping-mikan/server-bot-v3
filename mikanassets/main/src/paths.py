@@ -75,11 +75,12 @@ class BotPaths:
     def assets_dir(self) -> Path:
         return self.main_dir / "assets"
 
-    # --- mikanassets/web/ (Web管理画面) ---
+    # --- mikanassets/main/web/ (Web管理画面テンプレート・静的ファイル) ---
+    # mikanassets/main/ に含まれるため、self-update で自動的に入れ替わる。
 
     @property
     def web_dir(self) -> Path:
-        return self.mikanassets_dir / "web"
+        return self.main_dir / "web"
 
     @property
     def web_index_file(self) -> Path:
@@ -90,17 +91,20 @@ class BotPaths:
         return self.web_dir / "login.html"
 
     @property
-    def web_usr_dir(self) -> Path:
-        return self.web_dir / "usr"
-
-    @property
-    def web_tokens_file(self) -> Path:
-        return self.web_usr_dir / "tokens.json"
-
-    @property
     def web_pictures_dir(self) -> Path:
         return self.web_dir / "pictures"
 
     @property
     def web_icon_file(self) -> Path:
         return self.web_pictures_dir / "icon.png"
+
+    # --- mikanassets/web/usr/ (ユーザーデータ) ---
+    # mikanassets/main/ の外に置くことで、self-update の影響を受けない。
+
+    @property
+    def web_usr_dir(self) -> Path:
+        return self.mikanassets_dir / "web" / "usr"
+
+    @property
+    def web_tokens_file(self) -> Path:
+        return self.web_usr_dir / "tokens.json"
