@@ -62,53 +62,46 @@ def delete_config(config_dict):
 def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict):
     config_file_place = now_path + "/" + ".config"
     if not os.path.exists(config_file_place):
-        file = open(config_file_place,"w")
         server_path = now_path
         default_backup_path = server_path + "/../backup/" + server_path.replace("\\","/").split("/")[-1]
         if not os.path.exists(default_backup_path):
             os.makedirs(default_backup_path)
         default_backup_path = os.path.realpath(default_backup_path) + "/"
         print("default backup path: " + default_backup_path)
-        config_dict = {\
-                            "allow":{"ip":True},\
-                            "update":{
-                                "auto":True,\
-                                "branch":"main",\
-                            },\
-                            "server_path":now_path + "/",\
-                            "server_name":"bedrock_server.exe",\
-                            "server_args":"",\
-                            "server_char_encoding":"utf-8",\
-                            "log":{"server":True,"all":False},\
-                            
-                            "process_type":"mc-server",\
-                            "web":{"secret_key":"YOURSECRETKEY","port":80,"use_front_page": True},\
-                            "discord_commands":{\
-                                "permission":{\
-                                    "commands_level":INITIAL_COMMAND_PERMISSION,\
-                                },\
-                                "cmd":{\
-                                    "stdin":{\
-                                        "sys_files": [".config",".token","logs","mikanassets"],\
-                                        "send_discord":{"bits_capacity":2 * 1024 * 1024 * 1024},\
-                                    },
-                                    "serverin":{\
-                                        "allow_mccmd":["list","whitelist","tellraw","w","tell"]\
-                                    }\
-                                },\
-                                "terminal":{"discord":False,"capacity":"inf"},\
-                                "stop":{"submit":"stop"},\
-                                "backup":{"path": default_backup_path,},\
-                                "admin":{"members":{}},\
-                                "lang":"en",\
-                            },\
-                            "enable_advanced_features":False,\
-                        }
-        json.dump(config_dict,file,indent=4)
+        config_dict = {
+            "allow": {"ip": True},
+            "update": {"auto": True, "branch": "main"},
+            "server_path": now_path + "/",
+            "server_name": "bedrock_server.exe",
+            "server_args": "",
+            "server_char_encoding": "utf-8",
+            "log": {"server": True, "all": False},
+            "process_type": "mc-server",
+            "web": {"secret_key": "YOURSECRETKEY", "port": 80, "use_front_page": True},
+            "discord_commands": {
+                "permission": {"commands_level": INITIAL_COMMAND_PERMISSION},
+                "cmd": {
+                    "stdin": {
+                        "sys_files": [".config", ".token", "logs", "mikanassets"],
+                        "send_discord": {"bits_capacity": 2 * 1024 * 1024 * 1024},
+                    },
+                    "serverin": {"allow_mccmd": ["list", "whitelist", "tellraw", "w", "tell"]},
+                },
+                "terminal": {"discord": False, "capacity": "inf"},
+                "stop": {"submit": "stop"},
+                "backup": {"path": default_backup_path},
+                "admin": {"members": {}},
+                "lang": "en",
+            },
+            "enable_advanced_features": False,
+        }
+        with open(config_file_place, "w") as f:
+            json.dump(config_dict, f, indent=4)
         config_changed = True
     else:
         try:
-            config_dict = json.load(open(now_path + "/"  + ".config","r", encoding="utf-8"))
+            with open(now_path + "/" + ".config", "r", encoding="utf-8") as f:
+                config_dict = json.load(f)
             # 不要な要素があれば削除
             changed = delete_config(config_dict)
         except json.decoder.JSONDecodeError:
@@ -212,7 +205,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict):
                 cfg["enable_advanced_features"] = False
             # バージョン移行処理
             # v2.0.0までは、admin.membersがlistで管理されていた(当時の権限レベルは現在の1に該当する。)
-            if type(cfg["discord_commands"]["admin"]["members"]) == list:
+            if isinstance(cfg["discord_commands"]["admin"]["members"], list):
                 users = {}
                 for user in cfg["discord_commands"]["admin"]["members"]:
                     users[str(user)] = 1
@@ -222,11 +215,9 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict):
         checked_config = check(deepcopy(config_dict))
         if config_dict != checked_config or changed:
             config_dict = checked_config
-            file = open(now_path + "/"  + ".config","w")
-            #ログ
+            with open(now_path + "/" + ".config", "w") as f:
+                json.dump(config_dict, f, indent=4)
             config_changed = True
-            json.dump(config_dict,file,indent=4)
-            file.close()
             print("config file is changed.")
         else: config_changed = False
     return config_dict,config_changed

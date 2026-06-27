@@ -26,7 +26,7 @@ def _assets_path() -> str:
     # このファイル(mikanassets/main/src/text_data.py)から見て
     # mikanassets/main/assets/text.json の位置を求める
     here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(here, "..", "assets", "text.json")
+    return os.path.join(here, "..", "..", "assets", "text.json")
 
 
 def load_text_data(lang: str, allow_cmd: str = ""):
