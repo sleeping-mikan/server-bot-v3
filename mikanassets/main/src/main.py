@@ -28,6 +28,7 @@ import pathlib
 import re
 from config_loader import normalize_path, wait_for_keypress, make_config, to_config_safe
 from text_data import load_text_data
+import state
 #--------------------
 
 
@@ -119,8 +120,7 @@ tree = app_commands.CommandTree(client)
 #プロンプトを送る
 print()
 
-#サーバープロセス
-process = None
+#サーバープロセス(state.pyが初期値Noneを持つため、ここでの再代入は不要)
 
 #起動した時刻
 start_time = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
@@ -143,7 +143,6 @@ if not now_path:
 now_path = os.path.abspath(now_path)
 #現在のファイル(server.py)
 now_file = "server.py"
-WEB_TOKEN_FILE = '/mikanassets/web/usr/tokens.json'
 
 #asyncioの制限を回避
 if platform.system() == 'Windows':
@@ -243,16 +242,14 @@ async def is_force_administrator(user: discord.User) -> bool:
 
 #既にサーバが起動しているか
 def is_running_server(logger: logging.Logger) -> bool:
-    global process
-    if process is not None:
+    if not state.server_process.is_stopped():
         logger.error('server is still running')
         return True
     return False
 
 #サーバーが閉まっている状態か
 def is_stopped_server(logger: logging.Logger) -> bool:
-    global process
-    if process is None:
+    if state.server_process.is_stopped():
         logger.error('server is not running')
         return True
     return False
@@ -361,7 +358,7 @@ async def dircp_discord(src, dst, interaction: discord.Interaction, embed: Modif
     
 #logger thread
 def server_logger(proc:subprocess.Popen,ret):
-    global process,is_back_discord , use_stop
+    global is_back_discord,use_stop
     if log["server"]:
         file = open(file = server_path + "logs/server " + datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".log",mode = "w", encoding="utf-8")
     while True:
@@ -394,7 +391,7 @@ def server_logger(proc:subprocess.Popen,ret):
         sys_logger.error('stop command is not found')
         use_stop = True
     #プロセスを終了させる
-    process = None
+    state.server_process.reset()
 
 async def print_user(logger: logging.Logger,user: discord.user):
     logger.info('command used by ' + str(user))
@@ -493,6 +490,9 @@ async def get_directory_size(path):
 
 
 now_path = normalize_path(now_path)
+# server.pyを基準とした各種パスをBotPathsクラスに集約する
+state.init_paths(now_path)
+WEB_TOKEN_FILE = str(state.paths.web_tokens_file)
 #--------------------
 
 
@@ -512,7 +512,7 @@ configの読み込みと最小限の変数へのロードを行う
 """
 
 
-config_file_place = now_path + "/" + ".config"
+config_file_place = str(state.paths.config_file)
 
 
 
@@ -529,8 +529,8 @@ try:
     #ログファイルの作成
     def make_logs_file():
         #./logsが存在しなければlogsを作成する
-        if not os.path.exists(now_path + "/" + "logs"):
-            os.makedirs(now_path + "/" + "logs")
+        if not state.paths.logs_dir.exists():
+            state.paths.logs_dir.mkdir(parents=True, exist_ok=True)
         if not os.path.exists(server_path + "logs"):
             os.makedirs(server_path + "logs")
     make_logs_file()
@@ -671,65 +671,49 @@ def get_self_commit_id():
 is_first_run = False
 
 # mikanassets/extensionフォルダを作成
-if not os.path.exists(now_path + "/mikanassets/extension"):
+if not state.paths.extension_dir.exists():
     # 最初の起動の場合にはフラグを立てておく
     is_first_run = True
-    os.makedirs(now_path + "/mikanassets/extension")
+    state.paths.extension_dir.mkdir(parents=True, exist_ok=True)
 
 # update_apply.py(自己更新の実行役)は mikanassets/main/src/update_apply.py に常駐し、
 # 起動時の複製は行わない(self-update実行時にこのファイル自身も含めて新しい内容に置き換わる)。
-if not os.path.exists(now_path + "/mikanassets"):
-    os.makedirs(now_path + "/mikanassets")
-if not os.path.exists(os.path.join(now_path, "mikanassets", "main", "src", "update_apply.py")):
+state.paths.mikanassets_dir.mkdir(parents=True, exist_ok=True)
+if not state.paths.update_apply_file.exists():
     sys_logger.error("update_apply.py が見つかりません (自己更新が正しく行えない可能性があります)")
 
 def save_mikanassets_dat():
-    if not os.path.exists(now_path + "/mikanassets"):
-        os.makedirs(now_path + "/mikanassets")
-    if not os.path.exists(os.path.join(now_path, "mikanassets", ".dat")):
+    state.paths.mikanassets_dir.mkdir(parents=True, exist_ok=True)
+    if not state.paths.dat_file.exists():
         # 存在しなければデータファイルを作成する(現状 commit id 保管用)
-        file = open(os.path.join(now_path, "mikanassets", ".dat"), "w")
-        file.write('{"commit_id":' + f'"{get_self_commit_id()}"' + '}')
-        file.close()
+        state.paths.dat_file.write_text('{"commit_id":' + f'"{get_self_commit_id()}"' + '}')
 save_mikanassets_dat()
     #os.system("curl https://www.dropbox.com/scl/fi/w93o5sndwaiuie0otorm4/update.py?rlkey=gh3gqbt39iwg4afey11p99okp&st=2i9a9dzp&dl=1 -o ./update.py")
-if not os.path.exists(now_path + "/mikanassets/web"):
-    os.makedirs(now_path + "/mikanassets/web")
-if not os.path.exists(now_path + "/mikanassets/web/index.html") or do_init:
+if not state.paths.web_dir.exists():
+    state.paths.web_dir.mkdir(parents=True, exist_ok=True)
+if not state.paths.web_index_file.exists() or do_init:
     url='https://www.dropbox.com/scl/fi/04to7yrstmgdz9j09ljy2/index.html?rlkey=7q8eu0nooj8zy34dguwwsbkjd&st=4cb6y9sr&dl=1'
-    filename= now_path + '/mikanassets/web/index.html'
     urlData = requests.get(url).content
-    with open(filename ,mode='wb') as f: # wb でバイト型を書き込める
-        f.write(urlData)
-if not os.path.exists(now_path + "/mikanassets/web/login.html") or do_init:
+    state.paths.web_index_file.write_bytes(urlData)
+if not state.paths.web_login_file.exists() or do_init:
     url='https://www.dropbox.com/scl/fi/6yuq2dhqozxeh8vxj8wgy/login.html?rlkey=9w9tbevra7r9vwjeofslb8j0x&st=sxtayji2&dl=1'
-    filename= now_path + '/mikanassets/web/login.html'
     urlData = requests.get(url).content
-    with open(filename ,mode='wb') as f: # wb でバイト型を書き込める
-        f.write(urlData)
+    state.paths.web_login_file.write_bytes(urlData)
 #mikanassets/web/usr/tokens.jsonを作成
-if not os.path.exists(now_path + "/mikanassets/web/usr"):
-    os.makedirs(now_path + "/mikanassets/web/usr")
-if not os.path.exists(now_path + "/mikanassets/web/usr/tokens.json"):
+state.paths.web_usr_dir.mkdir(parents=True, exist_ok=True)
+if not state.paths.web_tokens_file.exists():
     #ファイルを作成
     tokenfile_items = {"tokens":[]}
-    file = open(now_path + "/mikanassets/web/usr/tokens.json","w",encoding="utf-8")
-    file.write(json.dumps(tokenfile_items,indent=4))
-    file.close()
+    state.paths.web_tokens_file.write_text(json.dumps(tokenfile_items,indent=4), encoding="utf-8")
     del tokenfile_items
-if not os.path.exists(now_path + "/mikanassets/web/pictures"):
-    os.makedirs(now_path + "/mikanassets/web/pictures")
-if not os.path.exists(now_path + "/mikanassets/web/pictures/icon.png") or do_init:
+state.paths.web_pictures_dir.mkdir(parents=True, exist_ok=True)
+if not state.paths.web_icon_file.exists() or do_init:
     url = 'https://www.dropbox.com/scl/fi/cr6uejk7s2vk4zevm8zc6/boticon.png?rlkey=szuisf29w1rnynz9xs9ucr24l&st=a8kuy1fd&dl=1'
-    filename= now_path + '/mikanassets/web/pictures/icon.png'
     urlData = requests.get(url).content
-    with open(filename ,mode='wb') as f: # wb でバイト型を書き込める
-        f.write(urlData)
+    state.paths.web_icon_file.write_bytes(urlData)
 
 def read_web_tokens():
-    file = open(now_path + "/mikanassets/web/usr/tokens.json","r",encoding="utf-8")
-    tokens = json.load(file)["tokens"]
-    file.close()
+    tokens = json.loads(state.paths.web_tokens_file.read_text(encoding="utf-8"))["tokens"]
     return tokens
 
 web_tokens = read_web_tokens()
@@ -737,16 +721,14 @@ web_tokens = read_web_tokens()
 def make_token_file():
     global token
     #./.tokenが存在しなければ.tokenを作成する
-    if not os.path.exists(now_path + "/" + ".token"):
-        file = open(now_path + "/" + ".token","w",encoding="utf-8")
-        file.write("ここにtokenを入力")
-        file.close()
-        sys_logger.error("please write token in" + now_path + "/" +".token")
+    if not state.paths.token_file.exists():
+        state.paths.token_file.write_text("ここにtokenを入力", encoding="utf-8")
+        sys_logger.error("please write token in" + state.paths.token_file.as_posix())
         #ブロッキングする
         wait_for_keypress()
     #存在するならtokenを読み込む(json形式)
     else:
-        token = open(now_path + "/" + ".token","r",encoding="utf-8").read()
+        token = state.paths.token_file.read_text(encoding="utf-8")
 
 def make_temp():
     global temp_path
@@ -764,19 +746,17 @@ def make_temp():
 
 async def update_self_if_commit_changed(interaction: discord.Interaction | None = None,embed: ModifiedEmbeds.DefaultEmbed | None = None, text_pack: dict | None = None, sender = None, is_force = False):
     # ファイルが存在しなければ作る
-    if not os.path.exists(os.path.join(now_path, "mikanassets", ".dat")):
+    if not state.paths.dat_file.exists():
         save_mikanassets_dat()
-    file = open(os.path.join(now_path, "mikanassets", ".dat"))
     # 現在のserver.pyのコミットidを取り出す
     try:
-        data = json.load(file)
+        data = json.loads(state.paths.dat_file.read_text(encoding="utf-8"))
         commit = data["commit_id"]
     except:
         if interaction is not None and embed is not None:
             embed.add_field(name="error", value="json load error (mikanassets/.dat). delete file.", inline=False)
             await sender(interaction=interaction,embed=embed)
         update_logger.error("json load error (mikanassets/.dat). delete file.")
-    file.close()
     # github/mainのコミットidを取り出す
     github_commit = get_self_commit_id()
     # 戻り値が正常でない場合はここで中断する(以前はログ出力でNone+strの結合がそのまま例外になっていた)
@@ -802,9 +782,7 @@ async def update_self_if_commit_changed(interaction: discord.Interaction | None 
         return
     # ファイルに新しいcommit id を書き込む
     data["commit_id"] = github_commit
-    file = open(os.path.join(now_path, "mikanassets", ".dat"), "w")
-    json.dump(data, file)
-    file.close()
+    state.paths.dat_file.write_text(json.dumps(data), encoding="utf-8")
     # ローカルとgithubのコードが違ったことを出力
     if interaction is not None and embed is not None:
         if is_force:
@@ -848,7 +826,7 @@ async def update_self_if_commit_changed(interaction: discord.Interaction | None 
         await sender(interaction=interaction,embed=embed)
     replace_logger.info("call update_apply.py")
     replace_logger.info('replace args : ' + msg_id + " " + channel_id)
-    update_apply_path = os.path.join(now_path, "mikanassets", "main", "src", "update_apply.py")
+    update_apply_path = str(state.paths.update_apply_file)
     # update_apply.py は mikanassets/main/src 配下に常駐したまま実行される
     # (Pythonはスクリプト読み込み後に実行するため、自分自身が入っているmainディレクトリを
     #  入れ替えても動作に影響しない)
@@ -942,8 +920,8 @@ sys_logger.info('create text data')
 #ローカルファイルの読み込み結果出力
 sys_logger.info("bot instance root -> " + now_path)
 sys_logger.info("server instance root -> " + server_path)
-sys_logger.info("read token file -> " + normalize_path(now_path + "/" +".token"))
-sys_logger.info("read config file -> " + normalize_path(now_path + "/" +".config"))
+sys_logger.info("read token file -> " + state.paths.token_file.as_posix())
+sys_logger.info("read config file -> " + state.paths.config_file.as_posix())
 view_config = config.copy()
 view_config["web"]["secret_key"] = "****"
 sys_logger.info("config -> " + str(view_config))
@@ -963,7 +941,7 @@ async def update_loop():
     try:
         discord_loop_is_run = True
         with status_lock:
-            if process is not None:
+            if not state.server_process.is_stopped():
                 await client.change_presence(activity=discord.Game(name=ACTIVITY_NAME["running"].format(server_name)))
             else:
                 await client.change_presence(activity=discord.Game(name=ACTIVITY_NAME["ended"]))
@@ -1019,7 +997,7 @@ async def on_message(message: discord.Message):
             await message.reply("permission denied")
             return
         # サーバーが閉じていたらはじく
-        if process is None or process.poll() is not None:
+        if not state.server_process.is_running():
             await message.reply("server is not running")
             return
         # コマンドを処理
@@ -1031,14 +1009,12 @@ async def on_message(message: discord.Message):
             await message.reply("this command is not allowed")
             return
         else:
-            process.stdin.write(message.content + "\n")
-            process.stdin.flush()
+            state.server_process.write(message.content)
     except Exception as e:
         sys_logger.error(e)
 
 @client.event
 async def on_ready():
-    global process
     ready_logger.info('discord bot logging on')
     # update_loopを開始
     update_loop.start()
@@ -1048,10 +1024,14 @@ async def on_ready():
     try:
         #サーバーの起動
         await client.change_presence(activity=discord.Game(ACTIVITY_NAME["starting"]))
-        if process is  None:
+        if state.server_process.is_stopped():
             #server を実行する
-            process = subprocess.Popen([server_path + server_name, *server_args],cwd=server_path,shell=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=server_char_code)
-            threading.Thread(target=server_logger,args=(process,deque())).start()
+            state.server_process.start(
+                [server_path + server_name, *server_args],
+                cwd=server_path,
+                char_code=server_char_code,
+                logger_func=server_logger,
+            )
             ready_logger.info('server starting')
         else:
             ready_logger.info('skip server starting because server already running')
@@ -1082,22 +1062,25 @@ async def on_ready():
 
 
 def core_stop() -> str:
-    global process,use_stop
+    global use_stop
     if is_stopped_server(stop_logger):
         return RESPONSE_MSG["other"]["is_not_running"]
     use_stop = True
     stop_logger.info('server stopping')
-    process.stdin.write(STOP + "\n")
-    process.stdin.flush()
+    state.server_process.write(STOP)
     return RESPONSE_MSG["stop"]["success"]
 
 def core_start() -> str:
-    global process,use_stop
+    global use_stop
     if is_running_server(start_logger):
         return RESPONSE_MSG["other"]["is_running"]
     start_logger.info('server starting')
-    process = subprocess.Popen([server_path + server_name, *server_args],cwd=server_path,shell=True,stdin=subprocess.PIPE,stdout=subprocess.PIPE,encoding=server_char_code)
-    threading.Thread(target=server_logger,args=(process,deque())).start()
+    state.server_process.start(
+        [server_path + server_name, *server_args],
+        cwd=server_path,
+        char_code=server_char_code,
+        logger_func=server_logger,
+    )
     return RESPONSE_MSG["start"]["success"]
 
 #--------------------
@@ -1136,7 +1119,6 @@ async def start(interaction: discord.Interaction):
 async def stop(interaction: discord.Interaction):
     global use_stop
     await print_user(stop_logger,interaction.user)
-    global process
     #管理者権限を要求
     if await user_permission(interaction.user) < COMMAND_PERMISSION["stop"]: 
         #両方not(権限がないなら)
@@ -1154,7 +1136,7 @@ async def stop(interaction: discord.Interaction):
     await client.change_presence(activity=discord.Game(ACTIVITY_NAME["ending"])) 
     while True:
         #終了するまで待つ
-        if process is None:
+        if state.server_process.is_stopped():
             await client.change_presence(activity=discord.Game(ACTIVITY_NAME["ended"])) 
             break
         await asyncio.sleep(1)
@@ -1315,13 +1297,12 @@ async def cmd(interaction: discord.Interaction,command:str):
         return
     serverin_logger.info("run command : " + command)
     try:
-        process.stdin.write(command + "\n")
+        state.server_process.write(command)
     except UnicodeEncodeError:
         serverin_logger.error(f"UnicodeEncodeError({command})")
         embed.add_field(name="",value=RESPONSE_MSG["cmd"]["serverin"]["unicode_encode_error"],inline=False)
         await interaction.response.send_message(embed=embed)
         return
-    process.stdin.flush()
     #結果の返却を要求する
     is_back_discord = True
     #結果を送信できるまで待機
@@ -2158,7 +2139,7 @@ async def get_log_files_choice_format(interaction: discord.Interaction, current:
     current = current.translate(str.maketrans("/\\:","--_"))
     #全てのファイルを取得
     s_logfiles = os.listdir(server_path + "logs/")
-    a_logfiles = os.listdir(now_path + "/logs/")
+    a_logfiles = [p.name for p in state.paths.logs_dir.iterdir()]
     logfiles = (s_logfiles + a_logfiles)
     # current と一致するものを返す & logファイル & 25個制限を実装
     logfiles = [i for i in logfiles if current in i and i.endswith(".log")][-25:]
@@ -2211,12 +2192,12 @@ async def logs(interaction: discord.Interaction,filename:str = None):
         elif filename.startswith("server"):
             filename = server_path + "logs/" + filename
         elif filename.startswith("all"):
-            filename = now_path + "/logs/" + filename
+            filename = str(state.paths.log_file(filename))
         else:
             filename = server_path + "logs/" + filename
             if not os.path.exists(filename):
-                if os.path.exists(now_path + "/logs/" + filename):
-                    filename = now_path + "/logs/" + filename
+                if state.paths.log_file(filename).exists():
+                    filename = str(state.paths.log_file(filename))
                 else:
                     log_logger.error('invalid filename : ' + filename + "\n" + f"interaction user / id：{interaction.user} {interaction.user.id}")
                     embed.add_field(name="",value=RESPONSE_MSG["logs"]["not_found"],inline=False)
@@ -2249,10 +2230,10 @@ async def tokengen(interaction: discord.Interaction):
     #トークンをファイルに書き込む
     dat_token = {"token":new_token, "deadline":(datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")}
     web_tokens.append(dat_token)
-    with open(now_path + "/mikanassets/web/usr/tokens.json","r",encoding="utf-8") as f:
+    with state.paths.web_tokens_file.open("r",encoding="utf-8") as f:
         item = json.load(f)
         item["tokens"].append(dat_token)
-    with open(now_path + "/mikanassets/web/usr/tokens.json","w",encoding="utf-8") as f:
+    with state.paths.web_tokens_file.open("w",encoding="utf-8") as f:
         json.dump(item,f,indent=4,ensure_ascii=False)
     token_logger.info('token added : ' + str(dat_token))
 
@@ -2438,20 +2419,20 @@ async def status(interaction: discord.Interaction):
         return
     
     # プログラムの利用メモリを取得する
-    memorys = await get_process_memory(process)
+    memorys = await get_process_memory(state.server_process.raw())
     embed.add_field(name=RESPONSE_MSG["status"]["mem_title"],value=RESPONSE_MSG["status"]["mem_value"].format(round(memorys["origin_mem"],2)) + "\n" + RESPONSE_MSG["status"]["mem_server_value"].format(round(memorys["server_mem"],2)))
 
     status_logger.info(f"get memory -> process {memorys['origin_mem']}, server {memorys['server_mem']}")
 
     # online状態を取得する
-    is_server_online = "🟢" if process is not None and process.poll() is None else "🔴"
+    is_server_online = "🟢" if state.server_process.is_running() else "🔴"
     is_waitress_online = "🟢" if await check_response(f"http://127.0.0.1:{web_port}") else "🔴"
     is_bot_online = "🟢"
     embed.add_field(name=RESPONSE_MSG["status"]["online_title"],value=RESPONSE_MSG["status"]["online_value"].format(is_server_online, is_waitress_online, is_bot_online))
 
     # SERVER PROCESS CPUの利用率を取得する
-    if process is not None:
-        cpu_usage = {server_name :(await get_process_cpu(process.pid))}
+    if not state.server_process.is_stopped():
+        cpu_usage = {server_name :(await get_process_cpu(state.server_process.pid))}
     else:
         cpu_usage = {"NULL": "NULL"}
     send_str = ["Server"]
@@ -2508,7 +2489,7 @@ async def exit(interaction: discord.Interaction):
 
 
 def get_process():
-    return process
+    return state.server_process.raw()
 
 def append_tasks_func(func):
     extension_tasks_func.append(func)
@@ -2524,8 +2505,7 @@ def write_server_in(command: str):
     if is_stopped_server(sys_logger):
         is_write_server_block = False
         return False, "server_is_not_running"
-    process.stdin.write(command + "\n")
-    process.stdin.flush()
+    state.server_process.write(command)
     is_write_server_block = False
     return True, "success"
 #--------------------
@@ -2539,35 +2519,34 @@ extension_logger = None
 def read_extension_commands():
     global extension_commands_group,extension_logger
     extension_commands_groups = deque()
-    extension_path = normalize_path(now_path + "/mikanassets/extension")
-    sys_logger.info("read extension commands ->" + extension_path)
+    extension_dir = state.paths.extension_dir
+    sys_logger.info("read extension commands ->" + extension_dir.as_posix())
     # 拡張moduleに追加コマンドが存在すればするだけ読み込む(mikanassets/extension/<拡張名>/commands.py)
-    for file in os.listdir(extension_path):
-        extension_file_path = normalize_path(extension_path + "/" + file)
-        extension_command_file_path = normalize_path(extension_file_path + "/commands.py")
-        if os.path.isdir(now_path + "/mikanassets/extension/" + file):
-            sys_logger.info("read extension commands ->" + extension_file_path)
-            if os.path.exists(extension_command_file_path):
+    for entry in extension_dir.iterdir():
+        extension_command_file_path = entry / "commands.py"
+        if entry.is_dir():
+            sys_logger.info("read extension commands ->" + entry.as_posix())
+            if extension_command_file_path.exists():
                 # <拡張名>コマンドグループを作成
-                extension_commands_group = app_commands.Group(name="extension-" + file,description="This commands group is extention.\nUse this code at your own risk." + file)
+                extension_commands_group = app_commands.Group(name="extension-" + entry.name,description="This commands group is extention.\nUse this code at your own risk." + entry.name)
                 extension_commands_groups.append(extension_commands_group)
                 # 拡張moduleが/mikanassets/extension/<拡張名>/commans.pyにある場合は読み込む
                 try:
-                    extension_logger = base_extension_logger.getChild(file)
-                    importlib.import_module("mikanassets.extension." + file + ".commands")
+                    extension_logger = base_extension_logger.getChild(entry.name)
+                    importlib.import_module("mikanassets.extension." + entry.name + ".commands")
                     # コマンドを追加
                     tree.add_command(extension_commands_group)
-                    sys_logger.info("read extension commands success -> " + extension_command_file_path)
+                    sys_logger.info("read extension commands success -> " + extension_command_file_path.as_posix())
                 except Exception as e:
-                    sys_logger.info("cannot read extension commands " + extension_command_file_path + f"({e})")
+                    sys_logger.info("cannot read extension commands " + extension_command_file_path.as_posix() + f"({e})")
             else:
-                sys_logger.info("not exist extension commands file in " + extension_command_file_path)
+                sys_logger.info("not exist extension commands file in " + extension_command_file_path.as_posix())
         else:
-            sys_logger.info("not directory -> " + extension_file_path)
+            sys_logger.info("not directory -> " + entry.as_posix())
 
     unti_GC_obj.append(extension_commands_groups)
 
-extension_path = normalize_path(now_path + "/mikanassets/extension")
+extension_path = state.paths.extension_dir.as_posix()
 # mikanassets/extension/<extension_dir>にディレクトリが存在すれば
 if os.path.exists(extension_path):
     if len(os.listdir(extension_path)) > 0:
@@ -2609,7 +2588,7 @@ async def on_error(interaction: discord.Interaction, error: Exception):
 
 
 
-app = Flask(__name__,template_folder="mikanassets/web",static_folder="mikanassets/web")
+app = Flask(__name__,template_folder=str(state.paths.web_dir),static_folder=str(state.paths.web_dir))
 app.secret_key = flask_secret_key
 flask_logger = create_logger("werkzeug",Formatter.WebFormatter("FLASK",f'{Color.BOLD + Color.BG_BLACK}%(asctime)s %(levelname)s %(name)s: %(message)s', dt_fmt),Formatter.WebConsoleFormatter("FLASK",'%(asctime)s %(levelname)s %(name)s: %(message)s', datefmt=dt_fmt))
 uvicorn_logger_err = create_logger("uvicorn.error",Formatter.WebFormatter("UVICORN",f'{Color.BOLD + Color.BG_BLACK}%(asctime)s %(levelname)s %(name)s: %(message)s', dt_fmt),Formatter.WebConsoleFormatter("UVICORN",'%(asctime)s %(levelname)s %(name)s: %(message)s', datefmt=dt_fmt))
@@ -2781,12 +2760,7 @@ def get_console_data():
     converter = Ansi2HTMLConverter()
     html_string = converter.convert("\n".join(log_msg))
 
-    try:
-        server_online = process.poll() is None#サーバーが起動している = True
-    except:
-        if process is not None:
-            process.kill()
-        server_online = False
+    server_online = state.server_process.poll_or_kill()#サーバーが起動している = True
 
     bot_online = True
 
@@ -2813,7 +2787,7 @@ def flask_backup_server():
     world_name = request.form['fileName']
     if "\\" in world_name or "/" in world_name:
         return jsonify(RESPONSE_MSG["backup"]["not_allowed_path"] + ":" + server_path + world_name)
-    if process is None:
+    if state.server_process.is_stopped():
         if os.path.exists(server_path + world_name):
             backup_logger.info("backup server")
             to = backup_path + "/" + datetime.now().strftime('%Y-%m-%d_%H_%M_%S')
@@ -2835,7 +2809,7 @@ def submit_data():
         return jsonify({"redirect": url_for('logout')})
     user_input = request.form['userInput']
     #サーバーが起きてるかを確認
-    if process is None:
+    if state.server_process.is_stopped():
         return jsonify("server is not running")
     #ifに引っかからない = サーバーが起動している
 
@@ -2844,8 +2818,7 @@ def submit_data():
         use_stop = True
 
     #サーバーの標準入力に入力
-    process.stdin.write(user_input + "\n")
-    process.stdin.flush()
+    state.server_process.write(user_input)
 
     # データを処理し、結果を返す（例: メッセージを返す）
     return jsonify(f"result: {user_input}")
@@ -2873,7 +2846,7 @@ web_thread.start()
 # discord.py用のロガーを取得して設定
 discord_logger = logging.getLogger('discord')
 if log["all"]:
-    file_handler = logging.FileHandler(now_path + "/logs/all " + start_time + ".log")
+    file_handler = logging.FileHandler(str(state.paths.log_file(f"all {start_time}.log")))
     file_handler.setFormatter(file_formatter)
     discord_logger.addHandler(file_handler)
 #--------------------
