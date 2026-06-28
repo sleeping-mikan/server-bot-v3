@@ -213,6 +213,7 @@ from bot.commands import (
     permission as permission_cmd, terminal as terminal_cmd,
     tokengen as tokengen_cmd, ip as ip_cmd, logs as logs_cmd,
     cmd as cmd_cmd, backup as backup_cmd, announce as announce_cmd,
+    update as update_cmd,
 )
 
 misc.setup()
@@ -229,6 +230,7 @@ logs_cmd.setup(server_path=server_path, log_msg=LogManager.log_msg)
 cmd_cmd.setup()
 backup_cmd.setup()
 announce_cmd.setup()
+update_cmd.setup()
 
 # ── 拡張機能ロード ────────────────────────────────────────────────────────────
 
