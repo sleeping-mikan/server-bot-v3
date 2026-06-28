@@ -18,7 +18,7 @@ from core.state import ctx
 from server.control import StartResult, StopResult, start_server, stop_server
 
 
-def setup(server_logger) -> None:
+def setup(server_logger: object) -> None:
     _start = LogManager.cmd.getChild("start")
     _stop  = LogManager.cmd.getChild("stop")
 
@@ -57,6 +57,8 @@ def setup(server_logger) -> None:
         embed.add_field(name="", value=ctx.text.response_msg["stop"]["success"], inline=False)
         await interaction.followup.send(embed=embed)
         await client.change_presence(activity=discord.Game(ctx.text.activity_name["ending"]))
-        while not ctx.server_process.is_stopped():
+        for _ in range(60):
+            if ctx.server_process.is_stopped():
+                break
             await asyncio.sleep(1)
         await client.change_presence(activity=discord.Game(ctx.text.activity_name["ended"]))

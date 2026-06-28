@@ -168,14 +168,14 @@ class LogManager:
     update:    ClassVar[logging.Logger]
     extension: ClassVar[logging.Logger]
 
-    _now_path:   ClassVar[str | None] = None
-    _log_all:    ClassVar[bool]       = False
-    _start_time: ClassVar[str | None] = None
+    _now_path:   ClassVar[Path | None] = None
+    _log_all:    ClassVar[bool]        = False
+    _start_time: ClassVar[str | None]  = None
 
     @classmethod
-    def init(cls, now_path: str, log_all: bool, start_time: str) -> None:
+    def init(cls, now_path: str | Path, log_all: bool, start_time: str) -> None:
         """起動時に一度だけ呼ぶ。各ロガーを生成して属性に設定する。"""
-        cls._now_path   = now_path
+        cls._now_path   = Path(now_path)
         cls._log_all    = log_all
         cls._start_time = start_time
 
@@ -211,7 +211,7 @@ class LogManager:
 
         if cls._log_all:
             _file = file_fmt or cls.file_formatter
-            path  = Path(cls._now_path) / "logs" / f"all {cls._start_time}.log"
+            path  = cls._now_path / "logs" / f"all {cls._start_time}.log"
             fh    = logging.FileHandler(str(path), encoding="utf-8")
             fh.setLevel(logging.DEBUG)
             fh.setFormatter(_file)
@@ -237,7 +237,7 @@ class LogManager:
         if not cls._log_all:
             return
         dlog = logging.getLogger("discord")
-        path = Path(cls._now_path) / "logs" / f"all {cls._start_time}.log"
+        path = cls._now_path / "logs" / f"all {cls._start_time}.log"
         fh   = logging.FileHandler(str(path), encoding="utf-8")
         fh.setFormatter(cls.file_formatter)
         dlog.addHandler(fh)

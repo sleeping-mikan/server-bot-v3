@@ -21,12 +21,14 @@ def _parse_mimd(text: str) -> tuple[deque, dict]:
     for line in text.split("\n"):
         stripped = line.lstrip()
         if stripped.startswith("#"):
-            fields.append({"name": stripped[1:], "value": ""})
+            fields.append({"name": stripped[1:].strip(), "value": ""})
         elif stripped.startswith("|title|") and not first_title:
-            meta["title"] = stripped[7:]
+            meta["title"] = stripped[7:].strip()
             first_title = True
         else:
-            fields[-1]["value"] += line
+            fields[-1]["value"] += line + "\n"
+    for f in fields:
+        f["value"] = f["value"].rstrip("\n")
     return fields, meta
 
 
@@ -86,7 +88,8 @@ def setup() -> None:
         fields, meta = _parse_mimd(txt)
         embed.title  = meta["title"]
         for item in fields:
-            embed.add_field(name=item["name"], value=item["value"], inline=False)
+            if item["name"] or item["value"]:
+                embed.add_field(name=item["name"], value=item["value"], inline=False)
         return_embed.add_field(
             name="",
             value=ctx.text.response_msg["announce"]["embed"]["success"],

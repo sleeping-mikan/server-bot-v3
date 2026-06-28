@@ -13,10 +13,12 @@ from bot.embeds import ModifiedEmbeds
 from core.log_setup import LogManager
 from core.state import ctx
 from bot.utils import (
+    get_member_level,
     is_administrator,
     not_enough_permission,
     print_user,
     rewrite_config,
+    set_member_level,
     user_permission,
 )
 
@@ -24,29 +26,27 @@ from bot.utils import (
 # ── 実装 (Implementation) ─────────────────────────────────────────────────────
 
 class PermChangeResult(Enum):
-    ADDED       = auto()
-    REMOVED     = auto()
-    ALREADY_HAS = auto()
-    NOT_FOUND   = auto()
+    ADDED         = auto()
+    UPDATED       = auto()
+    REMOVED       = auto()
+    NOT_FOUND     = auto()
     INVALID_LEVEL = auto()
 
 
-def _add_permission(user_id: int, level: int) -> PermChangeResult:
+def _set_permission(user_id: int, level: int) -> PermChangeResult:
+    """権限レベルを設定する (新規追加・既存更新どちらも対応)。"""
     max_level = max(ctx.text.command_permission.values())
     if not (1 <= level <= max_level):
         return PermChangeResult.INVALID_LEVEL
-    members = ctx.config["discord_commands"]["admin"]["members"]
-    if user_id in members:
-        return PermChangeResult.ALREADY_HAS
-    members[str(user_id)] = level
-    return PermChangeResult.ADDED
+    is_update = get_member_level(user_id) != 0
+    set_member_level(user_id, level)
+    return PermChangeResult.UPDATED if is_update else PermChangeResult.ADDED
 
 
 def _remove_permission(user_id: int) -> PermChangeResult:
-    members = ctx.config["discord_commands"]["admin"]["members"]
-    if str(user_id) not in members:
+    if get_member_level(user_id) == 0:
         return PermChangeResult.NOT_FOUND
-    members.pop(str(user_id))
+    set_member_level(user_id, 0)
     return PermChangeResult.REMOVED
 
 
@@ -76,11 +76,12 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
         if await user_permission(interaction.user) < ctx.text.command_permission["permission change"]:
             await not_enough_permission(interaction, admin_logger)
             return
-        result = _remove_permission(user.id) if level == 0 else _add_permission(user.id, level)
+        result = _remove_permission(user.id) if level == 0 else _set_permission(user.id, level)
+        add_success = ctx.text.response_msg["permission"]["change"]["add_success"].format(user)
         msg_map = {
-            PermChangeResult.ADDED:         ctx.text.response_msg["permission"]["change"]["add_success"].format(user),
+            PermChangeResult.ADDED:         add_success,
+            PermChangeResult.UPDATED:       add_success,
             PermChangeResult.REMOVED:       ctx.text.response_msg["permission"]["change"]["remove_success"].format(user),
-            PermChangeResult.ALREADY_HAS:   ctx.text.response_msg["permission"]["change"]["already_added"],
             PermChangeResult.NOT_FOUND:     ctx.text.response_msg["permission"]["change"]["already_removed"],
             PermChangeResult.INVALID_LEVEL: ctx.text.response_msg["permission"]["change"]["invalid_level"].format(
                 max(ctx.text.command_permission.values()), level
@@ -88,7 +89,7 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
         }
         embed.add_field(name="", value=msg_map[result], inline=False)
         await interaction.response.send_message(embed=embed)
-        if result in (PermChangeResult.ADDED, PermChangeResult.REMOVED):
+        if result in (PermChangeResult.ADDED, PermChangeResult.UPDATED, PermChangeResult.REMOVED):
             await rewrite_config()
             admin_logger.info(f"permission change {result.name} -> {user}")
 

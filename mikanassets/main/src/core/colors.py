@@ -20,7 +20,7 @@ class Color(Enum):
     BOLD           = '\033[1m'#太字
     UNDERLINE      = '\033[4m'#下線
     INVISIBLE      = '\033[08m'#不可視
-    REVERCE        = '\033[07m'#文字色と背景色を反転
+    REVERSE        = '\033[07m'#文字色と背景色を反転
     BG_BLACK       = '\033[40m'#(背景)黒
     BG_RED         = '\033[41m'#(背景)赤
     BG_GREEN       = '\033[42m'#(背景)緑

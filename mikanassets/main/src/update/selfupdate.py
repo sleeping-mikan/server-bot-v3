@@ -45,7 +45,7 @@ def get_self_commit_id() -> str | None:
     )
     response = requests.get(url)
     if response.status_code != 200:
-        _sys_logger.error("github api error. status code: " + str(response.status_code))
+        _sys_logger.error(f"github api error. status code: {response.status_code}")
         return None
     return response.json()["sha"]
 
@@ -96,8 +96,8 @@ async def update_self_if_commit_changed(
             await sender(interaction=interaction, embed=embed)
         return
 
-    _update_logger.info("github commit -> " + github_commit)
-    _update_logger.info(" local commit -> " + commit)
+    _update_logger.info(f"github commit -> {github_commit}")
+    _update_logger.info(f" local commit -> {commit}")
 
     if interaction is not None and embed is not None:
         embed.add_field(name="github file", value=github_commit, inline=False)
@@ -128,29 +128,29 @@ async def update_self_if_commit_changed(
     )
     response = requests.get(zip_url)
     if response.status_code != 200:
-        _sys_logger.error("response error. status_code : " + str(response.status_code))
+        _sys_logger.error(f"response error. status_code : {response.status_code}")
         if interaction is not None and embed is not None:
             embed.add_field(name="error : github zip download error", value="", inline=False)
             await sender(interaction=interaction, embed=embed)
         return
 
-    new_repo_extract_dir = os.path.join(ctx.temp_path, "new_repo")
-    if os.path.exists(new_repo_extract_dir):
+    new_repo_extract_dir = ctx.temp_path / "new_repo"
+    if new_repo_extract_dir.exists():
         rmtree(new_repo_extract_dir)
-    os.makedirs(new_repo_extract_dir)
+    new_repo_extract_dir.mkdir()
 
     with zipfile.ZipFile(io.BytesIO(response.content)) as zf:
         zf.extractall(new_repo_extract_dir)
 
-    extracted_items = os.listdir(new_repo_extract_dir)
+    extracted_items = list(new_repo_extract_dir.iterdir())
     if len(extracted_items) != 1:
-        _sys_logger.error("unexpected zip structure: " + str(extracted_items))
+        _sys_logger.error(f"unexpected zip structure: {extracted_items}")
         if interaction is not None and embed is not None:
             embed.add_field(name="error : unexpected zip structure", value="", inline=False)
             await sender(interaction=interaction, embed=embed)
         return
 
-    new_repo_root = os.path.join(new_repo_extract_dir, extracted_items[0])
+    new_repo_root = str(extracted_items[0])
 
     msg_id = "0"
     channel_id = "0"
@@ -160,12 +160,14 @@ async def update_self_if_commit_changed(
         await sender(interaction=interaction, embed=embed)
 
     _replace_logger.info("call update_apply.py")
-    _replace_logger.info("replace args : " + msg_id + " " + channel_id)
+    _replace_logger.info(f"replace args : {msg_id} {channel_id}")
 
     now_path = str(ctx.paths.base)
     update_apply_path = str(ctx.paths.update_apply_file)
 
-    os.execv(sys.executable, [
+    env = os.environ.copy()
+    env["MIKAN_BOT_TOKEN"] = ctx.token
+    os.execve(sys.executable, [
         sys.executable,
         update_apply_path,
         new_repo_root,
@@ -173,5 +175,4 @@ async def update_self_if_commit_changed(
         "server.py",
         msg_id,
         channel_id,
-        ctx.token,
-    ])
+    ], env)

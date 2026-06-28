@@ -11,20 +11,19 @@ bot/utils.py に置いていた is_path_within_scope / is_important_bot_file を
 
 from __future__ import annotations
 
-import os
 import pathlib
 
 from core.state import ctx
 
 
-def is_path_within_scope(path: str) -> bool:
+def is_path_within_scope(path: str | pathlib.Path) -> bool:
     """path が ctx.server_path 以下に収まっているかを確認する。
 
     ディレクトリトラバーサル攻撃 ("../../etc/passwd" など) を防ぐためのガード。
     resolve(strict=False) を使うことで、まだ存在しないパスでも評価できる。
     """
-    resolved_path   = pathlib.Path(os.path.abspath(path)).resolve(strict=False)
-    resolved_server = pathlib.Path(ctx.server_path).resolve()
+    resolved_path   = pathlib.Path(path).resolve(strict=False)
+    resolved_server = ctx.server_path.resolve()
     try:
         resolved_path.relative_to(resolved_server)
         return True
@@ -32,7 +31,7 @@ def is_path_within_scope(path: str) -> bool:
         return False
 
 
-async def is_important_bot_file(path: str) -> bool:
+async def is_important_bot_file(path: str | pathlib.Path) -> bool:
     """path が sys_files (重要ファイル) に該当するかを確認する。
 
     sys_files はコンフィグの discord_commands.cmd.stdin.sys_files で定義される。
@@ -40,18 +39,16 @@ async def is_important_bot_file(path: str) -> bool:
     管理者でない、または enable_advanced_features が無効のユーザーが
     これらファイルに触れるのを防ぐために使う。
     """
-    resolved  = pathlib.Path(os.path.abspath(path)).resolve()
+    resolved  = pathlib.Path(path).resolve()
     sys_files = ctx.config["discord_commands"]["cmd"]["stdin"]["sys_files"]
 
-    # __file__ は core/path_utils.py なので、その親ディレクトリが src/
-    src_dir = pathlib.Path(__file__).parent
+    src_dir   = pathlib.Path(__file__).parent
 
-    # src/ 配下の重要ファイルと server_path/ 配下の重要ファイルを列挙する
     important = [
-        pathlib.Path(os.path.abspath(src_dir / f)).resolve()
+        (src_dir / f).resolve()
         for f in sys_files
     ] + [
-        pathlib.Path(os.path.join(ctx.server_path, f)).resolve()
+        (ctx.server_path / f).resolve()
         for f in sys_files
     ]
 

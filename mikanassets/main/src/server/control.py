@@ -28,7 +28,7 @@ def start_server(logger_func: Callable) -> StartResult:
     if ctx.server_process.is_running():
         return StartResult.ALREADY_RUNNING
     ctx.server_process.start(
-        [ctx.server_path + ctx.server_name, *ctx.server_args],
+        [str(ctx.server_path / ctx.server_name), *ctx.server_args],
         cwd=ctx.server_path,
         char_code=ctx.server_char_code,
         logger_func=logger_func,

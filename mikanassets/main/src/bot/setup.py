@@ -8,10 +8,10 @@ main.py から呼び出すことを想定している。
 from __future__ import annotations
 
 import importlib
-
-import requests
+from collections import deque
 
 from bot import text_data as _text_data
+from core.config_types import AppConfig
 from bot.commands import (
     announce as announce_cmd,
     backup as backup_cmd,
@@ -39,9 +39,7 @@ async def load_text() -> None:
         ctx.text.activity_name,
         send_help_initial,
     ) = _text_data.load_text_data(ctx.text.lang, ctx.allow_cmd)
-    send_help_initial += (
-        f"web : http://{requests.get('https://api.ipify.org').text}:{ctx.web_port}\n"
-    )
+    send_help_initial += f"web : http://{ctx.web_ip}:{ctx.web_port}\n"
     embed = ModifiedEmbeds.DefaultEmbed(title="How to use this bot")
     for key in ctx.text.help_msg[ctx.text.lang]:
         embed.add_field(name=key, value=ctx.text.help_msg[ctx.text.lang][key], inline=False)
@@ -49,7 +47,7 @@ async def load_text() -> None:
     ctx.text.send_help = embed
 
 
-def setup_commands(config: dict, server_path: str, log_msg) -> None:
+def setup_commands(config: AppConfig, log_msg: deque) -> None:
     misc.setup()
     status_cmd.setup(server_name=ctx.server_name, web_port=ctx.web_port)
     server_cmd.setup(server_logger=ctx.server_logger)
@@ -60,7 +58,7 @@ def setup_commands(config: dict, server_path: str, log_msg) -> None:
         allow_ip=config["allow"]["ip"],
         ip_address_config=config["discord_commands"]["ip"]["address"],
     )
-    logs_cmd.setup(server_path=server_path, log_msg=log_msg)
+    logs_cmd.setup(server_path=str(ctx.server_path), log_msg=log_msg)
     cmd_cmd.setup()
     backup_cmd.setup()
     announce_cmd.setup()

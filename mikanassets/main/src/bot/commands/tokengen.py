@@ -20,15 +20,15 @@ def _generate_token() -> str:
     return "".join(choices(ascii_letters + digits, k=12))
 
 
-def _save_token(token: str) -> dict:
+def _save_token(token: str) -> dict[str, str]:
     deadline = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d %H:%M:%S")
     entry    = {"token": token, "deadline": deadline}
-    ctx.web_tokens.append(entry)
     with ctx.paths.web_tokens_file.open("r", encoding="utf-8") as f:
         data = json.load(f)
     data["tokens"].append(entry)
     with ctx.paths.web_tokens_file.open("w", encoding="utf-8") as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
+    ctx.web_tokens.append(entry)
     return entry
 
 

@@ -11,9 +11,7 @@ log_setup.init() が呼ばれた後に実行すること(main.py の web_thread 
 
 from __future__ import annotations
 
-import asyncio
 import logging
-import os
 from datetime import datetime, timedelta
 
 from ansi2html import Ansi2HTMLConverter
@@ -142,20 +140,20 @@ def _create_flask_app(flask_logger: logging.Logger) -> Flask:
         if not _is_valid_session():
             session["logout_reason"] = "This token has expired. create new token."
             return jsonify({"redirect": url_for("logout")})
-        from server.backup import create_backup
+        from server.backup import create_backup_sync
         world_name = request.form["fileName"]
         if "\\" in world_name or "/" in world_name:
             return jsonify(
-                ctx.text.response_msg["backup"]["not_allowed_path"] + f": {ctx.server_path}{world_name}"
+                ctx.text.response_msg["backup"]["not_allowed_path"] + f": {ctx.server_path / world_name}"
             )
-        from_path = os.path.join(ctx.server_path, world_name)
+        from_path = ctx.server_path / world_name
         if ctx.server_process.is_stopped():
-            if os.path.exists(from_path):
+            if from_path.exists():
                 flask_logger.info("backup server")
-                dst = asyncio.run(create_backup(from_path))
-                flask_logger.info("backuped server to " + dst)
-                return jsonify("backuped server!! " + dst)
-            flask_logger.info("data not found : " + from_path)
+                dst = create_backup_sync(str(from_path))
+                flask_logger.info(f"backuped server to {dst}")
+                return jsonify(f"backuped server!! {dst}")
+            flask_logger.info(f"data not found : {from_path}")
             return jsonify(
                 ctx.text.response_msg["backup"]["data_not_found"] + f": {from_path}"
             )

@@ -13,12 +13,12 @@ ProgressCallback : (copied_files, total_files, copied_bytes, total_bytes) → No
 from __future__ import annotations
 
 import asyncio
-import os
+import shutil
 from datetime import datetime
+from pathlib import Path
 from shutil import Error, copy2, copystat
 from typing import Awaitable, Callable
 
-from core.config_loader import normalize_path
 from core.state import ctx
 
 # (copied_files, total_files, copied_bytes, total_bytes)
@@ -32,59 +32,69 @@ async def copy_directory(
     symlinks:    bool                    = False,
 ) -> None:
     """src を dst へ再帰的にコピーする。"""
-    src = normalize_path(src)
-    dst = normalize_path(dst)
+    src_path = Path(src)
+    dst_path = Path(dst)
 
     total_files = 0
     total_bytes = 0
-    for root, _, files in os.walk(top=src, topdown=False):
-        total_files += len(files)
-        for f in files:
-            fp = os.path.join(root, f)
-            if not os.path.islink(fp):
-                try:
-                    total_bytes += os.path.getsize(fp)
-                except OSError:
-                    pass
+    for fp in src_path.rglob("*"):
+        if fp.is_file() and not fp.is_symlink():
+            total_files += 1
+            try:
+                total_bytes += fp.stat().st_size
+            except OSError:
+                pass
 
     copied_files = 0
     copied_bytes = 0
 
-    async def _do_copy(s: str, d: str, syml: bool) -> None:
+    async def _do_copy(s: Path, d: Path, syml: bool) -> None:
         nonlocal copied_files, copied_bytes
-        if not os.path.exists(d):
-            os.makedirs(d)
+        d.mkdir(parents=True, exist_ok=True)
         errors: list = []
-        for name in os.listdir(s):
-            sname = os.path.join(s, name)
-            dname = os.path.join(d, name)
+        for sname in s.iterdir():
+            dname = d / sname.name
             try:
-                if syml and os.path.islink(sname):
-                    os.symlink(os.readlink(sname), dname)
-                elif os.path.isdir(sname):
+                if syml and sname.is_symlink():
+                    dname.symlink_to(sname.readlink())
+                elif sname.is_dir():
                     await _do_copy(sname, dname, syml)
                 else:
                     await asyncio.to_thread(copy2, sname, dname)
                     try:
-                        copied_bytes += os.path.getsize(sname)
+                        copied_bytes += sname.stat().st_size
                     except OSError:
                         pass
                     copied_files += 1
                     if on_progress is not None:
                         await on_progress(copied_files, total_files, copied_bytes, total_bytes)
             except OSError as why:
-                errors.append((sname, dname, str(why)))
+                errors.append((str(sname), str(dname), str(why)))
             except Error as err:
                 errors.extend(err.args[0])
         try:
             copystat(s, d)
         except OSError as why:
             if why.winerror is None:  # type: ignore[attr-defined]
-                errors.extend((s, d, str(why)))
+                errors.extend((str(s), str(d), str(why)))
         if errors:
             raise Error(errors)
 
-    await _do_copy(src, dst, symlinks)
+    await _do_copy(src_path, dst_path, symlinks)
+
+
+def create_backup_sync(from_path: str) -> str:
+    """バックアップを同期的に作成し保存先パスを返す。progress 通知なし。
+
+    Flask のような同期コンテキストから呼ぶ用。非同期ループと干渉しない。
+    """
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
+    dst = str(ctx.backup_path / f"{timestamp}-{Path(from_path).name}")
+    if Path(from_path).is_dir():
+        shutil.copytree(from_path, dst)
+    else:
+        shutil.copy2(from_path, dst)
+    return dst
 
 
 async def create_backup(
@@ -93,10 +103,7 @@ async def create_backup(
 ) -> str:
     """バックアップを作成し、保存先の絶対パスを返す。"""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
-    dst = os.path.join(
-        ctx.backup_path,
-        f"{timestamp}-{os.path.basename(from_path)}",
-    )
+    dst = str(ctx.backup_path / f"{timestamp}-{Path(from_path).name}")
     await copy_directory(from_path, dst, on_progress=on_progress)
     return dst
 
@@ -107,5 +114,5 @@ async def apply_backup(
     on_progress: ProgressCallback | None = None,
 ) -> None:
     """バックアップを dest_path に適用する。"""
-    src = os.path.join(ctx.backup_path, backup_name)
+    src = str(ctx.backup_path / backup_name)
     await copy_directory(src, dest_path, on_progress=on_progress)

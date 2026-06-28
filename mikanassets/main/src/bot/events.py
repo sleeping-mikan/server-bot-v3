@@ -50,8 +50,13 @@ async def _update_loop() -> None:
                 while len(log_buf) > ctx.terminal_capacity:
                     log_buf.popleft()
                     pop_flg = True
+                ch = client.get_channel(term.channel_id)
+                if ch is None:
+                    log_buf.clear()
+                    ctx.terminal.loop_is_run = False
+                    return
                 if pop_flg:
-                    await client.get_channel(term.channel_id).send(
+                    await ch.send(
                         f"データ件数が{ctx.terminal_capacity}件を超えたため以前のデータを破棄しました。"
                         "より多くのログを出力するには.config内のterminal.capacityを変更してください。"
                     )
@@ -61,18 +66,16 @@ async def _update_loop() -> None:
                     raise Exception("message is too long(skipped)")
                 term.send_length += len(log_buf[0]) + 1
                 if term.send_length >= 1900:
-                    await client.get_channel(term.channel_id).send(
-                        "```ansi\n" + "".join(term.item) + "\n```"
-                    )
+                    await ch.send("```ansi\n" + "".join(term.item) + "\n```")
                     term.item        = deque()
                     term.send_length = len(log_buf[0]) + 1
                     await asyncio.sleep(1)
                 term.item.append(log_buf.popleft() + "\n")
 
             if len(term.item) > 0:
-                await client.get_channel(term.channel_id).send(
-                    "```ansi\n" + "".join(term.item) + "\n```"
-                )
+                ch = client.get_channel(term.channel_id)
+                if ch is not None:
+                    await ch.send("```ansi\n" + "".join(term.item) + "\n```")
                 term.item        = deque()
                 term.send_length = 0
 
@@ -99,7 +102,7 @@ async def on_message(message: discord.Message) -> None:
         if message.author.bot:
             pass
         elif cmd_list[0] not in ctx.allow_cmd:
-            LogManager.sys.error("unknown command : " + " ".join(cmd_list))
+            LogManager.sys.error(f"unknown command : {' '.join(cmd_list)}")
             await message.reply("this command is not allowed")
             return
         else:
@@ -121,7 +124,7 @@ async def on_ready() -> None:
         )
         if ctx.server_process.is_stopped():
             ctx.server_process.start(
-                [ctx.server_path + ctx.server_name, *ctx.server_args],
+                [str(ctx.server_path / ctx.server_name), *ctx.server_args],
                 cwd=ctx.server_path,
                 char_code=ctx.server_char_code,
                 logger_func=ctx.server_logger,

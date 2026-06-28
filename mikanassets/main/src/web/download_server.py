@@ -8,12 +8,11 @@ SendDiscordSelfServer.create_app() で FastAPI アプリを生成し、main.py �
 from __future__ import annotations
 
 import asyncio
-import os
 import uuid
+from pathlib import Path
 from contextlib import asynccontextmanager
 from datetime import datetime, timedelta
 
-import requests
 import zipstream
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
@@ -28,11 +27,11 @@ _logger = _logging.getLogger("web.download")
 
 async def _get_directory_size(path: str) -> int:
     size = 0
-    for entry in os.scandir(path):
+    for entry in Path(path).iterdir():
         if entry.is_file():
             size += entry.stat().st_size
         elif entry.is_dir():
-            size += await _get_directory_size(entry.path)
+            size += await _get_directory_size(str(entry))
     return size
 
 
@@ -49,14 +48,14 @@ class SendDiscordSelfServer:
         token = uuid.uuid4().hex
         expire_at = datetime.now() + timedelta(seconds=ttl)
         bits_capacity = ctx.config["discord_commands"]["cmd"]["stdin"]["send_discord"]["bits_capacity"]
-        dir_size = await _get_directory_size(path) if os.path.isdir(path) else os.path.getsize(path)
+        p = Path(path)
+        dir_size = await _get_directory_size(path) if p.is_dir() else p.stat().st_size
         if dir_size > bits_capacity:
             return False, [1, str(dir_size), str(bits_capacity)]
         async with cls._lock:
             cls._download_registry[token] = (path, expire_at)
         _logger.info(f"register download -> {path} ({dir_size} Bytes)")
-        ip = requests.get("https://api.ipify.org", timeout=10).text
-        return True, f"http://{ip}:{ctx.web_port}/download/{token}"
+        return True, f"http://{ctx.web_ip}:{ctx.web_port}/download/{token}"
 
     @classmethod
     async def _cleanup_loop(cls) -> None:
@@ -83,7 +82,7 @@ class SendDiscordSelfServer:
         z = zipstream.ZipStream()
         z.add_path(path)
         _logger.info(f"download -> {path}")
-        filename = os.path.basename(path) or "download"
+        filename = Path(path).name or "download"
         return StreamingResponse(
             z,
             media_type="application/zip",

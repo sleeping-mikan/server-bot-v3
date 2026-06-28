@@ -20,17 +20,36 @@ from core.state import ctx
 
 async def print_user(logger: logging.Logger, user: discord.User) -> None:
     """コマンド実行ユーザーをログに記録する。"""
-    logger.info("command used by " + str(user))
+    logger.info(f"command used by {user}")
 
 
-async def is_administrator(user: discord.User) -> bool:
+async def is_administrator(user: discord.Member | discord.User) -> bool:
     """ユーザーがサーバー管理者権限を持つかを返す。"""
-    return user.guild_permissions.administrator
+    if isinstance(user, discord.Member):
+        return user.guild_permissions.administrator
+    return False
+
+
+def get_member_level(user_id: int) -> int:
+    """admin.members からユーザーの権限レベルを返す。未登録は 0。
+
+    JSON のキーは常に str のため str 変換をここで一元管理する。
+    """
+    return ctx.config["discord_commands"]["admin"]["members"].get(str(user_id), 0)
+
+
+def set_member_level(user_id: int, level: int) -> None:
+    """admin.members にユーザーの権限レベルを設定する。level=0 なら削除。"""
+    members = ctx.config["discord_commands"]["admin"]["members"]
+    if level == 0:
+        members.pop(str(user_id), None)
+    else:
+        members[str(user_id)] = level
 
 
 async def is_force_administrator(user: discord.User) -> bool:
     """コンフィグの admin.members リストに含まれるユーザーかを返す。"""
-    return user.id in ctx.config["discord_commands"]["admin"]["members"]
+    return str(user.id) in ctx.config["discord_commands"]["admin"]["members"]
 
 
 async def user_permission(user: discord.User) -> int:
@@ -41,16 +60,18 @@ async def user_permission(user: discord.User) -> int:
     """
     if await is_administrator(user):
         return max(ctx.text.command_permission.values())
-    return ctx.config["discord_commands"]["admin"]["members"].get(str(user.id), 0)
+    return get_member_level(user.id)
 
 
 async def rewrite_config() -> bool:
     """ctx.config をファイルに書き戻す。失敗時は False を返す。"""
+    import logging
     try:
         with ctx.paths.config_file.open("w", encoding="utf-8") as f:
             json.dump(ctx.config, f, indent=4, ensure_ascii=False)
         return True
-    except Exception:
+    except Exception as e:
+        logging.getLogger("sys").error(f"config write failed: {e}")
         return False
 
 

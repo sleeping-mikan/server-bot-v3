@@ -13,44 +13,48 @@ from core.log_setup import LogManager
 from core.state import ctx
 
 
-def make_reader(log_server: bool, server_path: str):
+def make_reader(log_server: bool):
     """サーバーの stdout を読み続けるスレッド関数を生成して返す。
 
     Args:
-        log_server  : True の場合ファイルにもログを書き出す
-        server_path : サーバーディレクトリのパス
+        log_server : True の場合ファイルにもログを書き出す
     """
     def reader(proc: subprocess.Popen, _ret) -> None:
         server_log = LogManager.server
         sys_log    = LogManager.sys
+        log_file   = None
 
         if log_server:
             log_path = (
-                server_path + "logs/server "
-                + datetime.now().strftime("%Y-%m-%d_%H_%M_%S") + ".log"
+                ctx.server_path / "logs"
+                / f"server {datetime.now().strftime('%Y-%m-%d_%H_%M_%S')}.log"
             )
-            log_file = open(log_path, mode="w", encoding="utf-8")
+            log_file = log_path.open(mode="w", encoding="utf-8")
 
-        while True:
-            try:
-                line = proc.stdout.readline()
-            except Exception as e:
-                sys_log.error(e)
-                continue
-            if line == "":
-                if proc.poll() is not None:
-                    break
-                continue
-            if line == "\n":
-                continue
-            line = line.rstrip("\n")
-            server_log.info(line)
-            if log_server:
-                log_file.write(line + "\n")
-                log_file.flush()
-            if ctx.is_back_discord:
-                ctx.cmd_logs.append(line)
-                ctx.is_back_discord = False
+        try:
+            while True:
+                try:
+                    line = proc.stdout.readline()
+                except Exception as e:
+                    sys_log.error(e)
+                    continue
+                if line == "":
+                    if proc.poll() is not None:
+                        break
+                    continue
+                if line == "\n":
+                    continue
+                line = line.rstrip("\n")
+                server_log.info(line)
+                if log_file is not None:
+                    log_file.write(line + "\n")
+                    log_file.flush()
+                if ctx.is_back_discord:
+                    ctx.cmd_logs.append(line)
+                    ctx.is_back_discord = False
+        finally:
+            if log_file is not None:
+                log_file.close()
 
         sys_log.info("server is ended")
         if not ctx.use_stop:

@@ -18,8 +18,8 @@ from __future__ import annotations
 
 import asyncio
 import io
-import os
 from enum import Enum, auto
+from pathlib import Path
 from shutil import move as shutil_move, rmtree
 
 import aiohttp
@@ -63,8 +63,8 @@ def _send_server_cmd(command: str) -> ServeInResult:
     return ServeInResult.SUCCESS
 
 
-def _abs_server_path(rel: str) -> str:
-    return os.path.abspath(os.path.join(ctx.server_path, rel))
+def _abs_server_path(rel: str) -> Path:
+    return (ctx.server_path / rel).resolve()
 
 
 # ── 表示 (Presentation) ──────────────────────────────────────────────────────
@@ -110,15 +110,21 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["serverin"]["unicode_encode_error"], inline=False)
             await interaction.response.send_message(embed=embed)
             return
+        # サーバーの応答を待つため defer してから followup で返す (3秒制限を回避)
+        await interaction.response.defer()
         serverin_logger.info(f"run command : {command}")
         ctx.is_back_discord = True
-        while True:
-            if len(ctx.cmd_logs) == 0:
-                await asyncio.sleep(0.1)
-                continue
-            embed.add_field(name="", value=ctx.cmd_logs.popleft(), inline=False)
-            await interaction.response.send_message(embed=embed)
-            break
+        loop = asyncio.get_event_loop()
+        deadline = loop.time() + 3.0
+        while loop.time() < deadline:
+            if ctx.cmd_logs:
+                embed.add_field(name="", value=ctx.cmd_logs.popleft(), inline=False)
+                await interaction.followup.send(embed=embed)
+                return
+            await asyncio.sleep(0.1)
+        ctx.is_back_discord = False
+        embed.add_field(name="", value=ctx.text.response_msg["cmd"]["serverin"].get("timeout", "(no response)"), inline=False)
+        await interaction.followup.send(embed=embed)
 
     # /cmd stdin ls ───────────────────────────────────────────────────────────
 
@@ -134,29 +140,28 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.exists(path):
+        if not path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["ls"]["file_not_found"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.isdir(path):
+        if not path.is_dir():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["ls"]["not_directory"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        files = os.listdir(path)
+        entries = list(path.iterdir())
         colorized = []
-        for f in files:
-            full = os.path.join(path, f)
-            if os.path.isdir(full):
-                colorized.append(f"\033[34m{f}\033[0m")
-            elif os.path.islink(full):
-                colorized.append(f"\033[35m{f}\033[0m")
+        for entry in entries:
+            if entry.is_dir():
+                colorized.append(f"\033[34m{entry.name}\033[0m")
+            elif entry.is_symlink():
+                colorized.append(f"\033[35m{entry.name}\033[0m")
             else:
-                colorized.append(f"\033[32m{f}\033[0m")
+                colorized.append(f"\033[32m{entry.name}\033[0m")
         formatted = "\n".join(colorized)
         ls_logger.info(f"list directory -> {path}")
         if len(formatted) > 900:
             with io.StringIO() as buf:
-                buf.write("\n".join(files))
+                buf.write("\n".join(e.name for e in entries))
                 buf.seek(0)
                 embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["ls"]["to_long"].format(path), inline=False)
                 await interaction.response.send_message(embed=embed, file=discord.File(buf, filename="directory_list.txt"))
@@ -182,11 +187,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if os.path.islink(path):
+        if path.is_symlink():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mk"]["is_link"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if os.path.isdir(path):
+        if path.is_dir():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mk"]["is_directory"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -194,8 +199,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        with open(path, "w"):
-            pass
+        path.touch()
         if file is not None:
             await file.save(path)
         mk_logger.info(f"create file -> {path}")
@@ -220,11 +224,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.exists(path):
+        if not path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rm"]["file_not_found"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.isfile(path):
+        if not path.is_file():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["not_file"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -232,7 +236,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        os.remove(path)
+        path.unlink()
         rm_logger.info(f"remove file -> {path}")
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rm"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
@@ -251,11 +255,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if os.path.exists(path):
+        if path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mkdir"]["exists"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        os.makedirs(path)
+        path.mkdir(parents=True)
         mkdir_logger.info(f"create directory -> {path}")
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mkdir"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
@@ -278,7 +282,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.exists(path):
+        if not path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rmdir"]["not_exists"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -286,7 +290,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        rmtree(path)
+        rmtree(path)  # Path オブジェクトを受け取れる
         rmdir_logger.info(f"remove directory -> {path}")
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rmdir"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
@@ -310,15 +314,15 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(abs_path, abs_dest), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.exists(abs_path):
+        if not abs_path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mv"]["file_not_found"].format(abs_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.isfile(abs_path) and not os.path.isdir(abs_path):
+        if not abs_path.is_file() and not abs_path.is_dir():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["not_file_or_directory"].format(abs_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.isdir(os.path.dirname(abs_dest)):
+        if not abs_dest.parent.is_dir():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["not_directory"].format(abs_dest), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -327,7 +331,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(abs_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        shutil_move(abs_path, abs_dest)
+        shutil_move(abs_path, abs_dest)  # Path オブジェクトを受け取れる
         mv_logger.info(f"move file -> {abs_path} -> {abs_dest}")
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mv"]["success"].format(abs_path, abs_dest), inline=False)
         await interaction.response.send_message(embed=embed)
@@ -342,15 +346,15 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             await not_enough_permission(interaction, send_discord_logger)
             return
         file_path = _abs_server_path(path)
-        if not os.path.exists(file_path):
+        if not file_path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["send-discord"]["file_not_found"].format(file_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not is_path_within_scope(file_path) or os.path.basename(file_path) == ".token":
+        if not is_path_within_scope(file_path) or file_path.name == ".token":
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(file_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        ok, result = await SendDiscordSelfServer.register_download(file_path)
+        ok, result = await SendDiscordSelfServer.register_download(str(file_path))
         if ok:
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["send-discord"]["send_myserver_link"].format(interaction.user.id, result, file_path), inline=False)
         else:
@@ -367,7 +371,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             await not_enough_permission(interaction, wget_logger)
             return
         save_path = _abs_server_path(path)
-        if os.path.exists(save_path):
+        if save_path.exists():
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["wget"]["already_exists"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -386,8 +390,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
                         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["wget"]["download_failed"].format(url), inline=False)
                         await interaction.response.send_message(embed=embed)
                         return
-                    with open(save_path, "wb") as f:
-                        f.write(await response.read())
+                    save_path.write_bytes(await response.read())
             except Exception as e:
                 embed.add_field(name="", value=f"invalid url -> ({e})", inline=False)
                 await interaction.response.send_message(embed=embed)

@@ -6,7 +6,7 @@ bot/commands/backup.py — /backup create, /backup apply Discord コマンドハ
 
 from __future__ import annotations
 
-import os
+from pathlib import Path
 
 import discord
 from discord import app_commands
@@ -20,7 +20,6 @@ from bot.utils import (
     print_user,
     user_permission,
 )
-from core.config_loader import normalize_path
 from core.log_setup import LogManager
 from core.state import ctx
 from server.backup import ProgressCallback, apply_backup, create_backup
@@ -75,7 +74,7 @@ def setup() -> None:
         description=ctx.text.command_desc[ctx.text.lang]["backup"]["create"],
     )
     async def backup_create_cmd(interaction: discord.Interaction, path: str) -> None:
-        from_path = normalize_path(os.path.join(ctx.server_path, path))
+        from_path = str(ctx.server_path / path)
         await print_user(_create, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/backup create {path}")
         if await user_permission(interaction.user) < ctx.text.command_permission["backup create"]:
@@ -94,7 +93,7 @@ def setup() -> None:
             )
             await interaction.response.send_message(embed=embed)
             return
-        if not os.path.exists(from_path):
+        if not Path(from_path).exists():
             _create.error(f"data not found : {from_path}")
             embed.add_field(
                 name="",
@@ -104,13 +103,13 @@ def setup() -> None:
             await interaction.response.send_message(embed=embed, ephemeral=True)
             return
         await interaction.response.send_message(embed=embed)
-        progress = _make_progress_callback(interaction, embed, from_path, ctx.backup_path)
+        progress = _make_progress_callback(interaction, embed, from_path, str(ctx.backup_path))
         dst = await create_backup(from_path, on_progress=progress)
         _create.info(f"backup done -> {dst}")
 
     async def _backup_autocomplete(interaction: discord.Interaction, current: str):
         current = current.translate(str.maketrans("/\\:", "--_"))
-        items   = [i for i in os.listdir(ctx.backup_path) if current in i][-25:]
+        items   = [i.name for i in ctx.backup_path.iterdir() if current in i.name][-25:]
         return [app_commands.Choice(name=i, value=i) for i in items]
 
     @command_group_backup.command(name="apply", description="apply backup")
@@ -129,8 +128,8 @@ def setup() -> None:
             embed.add_field(name="", value=ctx.text.response_msg["other"]["is_running"], inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        src = os.path.join(ctx.backup_path, witch)
-        if not os.path.exists(src):
+        src = str(ctx.backup_path / witch)
+        if not (ctx.backup_path / witch).exists():
             _apply.error(f"backup not found : {src}")
             embed.add_field(
                 name="",
@@ -139,7 +138,7 @@ def setup() -> None:
             )
             await interaction.response.send_message(embed=embed)
             return
-        dest_path = os.path.join(ctx.server_path, path) if path else ctx.server_path
+        dest_path = str(ctx.server_path / path) if path else str(ctx.server_path)
         if not is_path_within_scope(dest_path) or await is_important_bot_file(dest_path):
             _apply.error(f"path not allowed : {dest_path}")
             embed.add_field(

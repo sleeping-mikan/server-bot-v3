@@ -13,13 +13,19 @@ import aiohttp
 import psutil
 
 
+def _mem_bytes(proc: psutil.Process) -> int:
+    """プロセスの実メモリ使用量をバイトで返す。Windows は wset、それ以外は rss。"""
+    info = proc.memory_info()
+    return getattr(info, "wset", None) or info.rss
+
+
 async def get_process_memory(process: subprocess.Popen | None) -> dict[str, float]:
     MB = 1024 ** 2
-    origin_mem = psutil.Process(os.getpid()).memory_info().rss / MB
+    origin_mem = _mem_bytes(psutil.Process(os.getpid())) / MB
     if process is not None:
-        children   = psutil.Process(process.pid).children(recursive=True)
-        server_mem = sum(psutil.Process(c.pid).memory_info().wset for c in children) / MB
-        server_mem += psutil.Process(process.pid).memory_info().wset / MB
+        parent     = psutil.Process(process.pid)
+        children   = parent.children(recursive=True)
+        server_mem = (_mem_bytes(parent) + sum(_mem_bytes(psutil.Process(c.pid)) for c in children)) / MB
     else:
         server_mem = 0.0
     return {"origin_mem": origin_mem, "server_mem": server_mem}

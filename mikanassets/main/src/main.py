@@ -21,7 +21,7 @@ if platform.system() == "Windows":
 # ── パッケージ存在確認 ────────────────────────────────────────────────────────
 
 try:
-    for _pkg in ("requests", "discord", "flask", "ansi2html", "aiohttp", "fastapi", "uvicorn", "zipstream", "waitress"):
+    for _pkg in ("requests", "discord", "flask", "ansi2html", "aiohttp", "fastapi", "uvicorn", "zipstream", "waitress", "psutil"):
         importlib.import_module(_pkg)
     del _pkg
 except ImportError:
@@ -38,40 +38,26 @@ now_path = os.path.abspath(now_path)
 
 # ── コア初期化 ────────────────────────────────────────────────────────────────
 
-from core.config_loader import normalize_path, wait_for_keypress, make_config, to_config_safe
+from pathlib import Path
+
+from core.config_loader import wait_for_keypress, make_config
 from core.state import ctx
+from bot.commands import INITIAL_COMMAND_PERMISSION
 
-now_path = normalize_path(now_path)
 ctx.init_paths(now_path)
-
-config_file_place = str(ctx.paths.config_file)
-
-INITIAL_COMMAND_PERMISSION = {
-    "stop": 1, "start": 1, "exit": 2,
-    "cmd serverin": 1, "cmd stdin mk": 3, "cmd stdin rm": 2,
-    "cmd stdin mkdir": 2, "cmd stdin rmdir": 2, "cmd stdin ls": 2,
-    "cmd stdin mv": 3, "cmd stdin send-discord": 2, "cmd stdin wget": 3,
-    "help": 0, "backup create": 1, "backup apply": 3, "ip": 0,
-    "logs": 1, "permission view": 0, "permission change": 4,
-    "lang": 2, "tokengen": 1, "terminal set": 1, "terminal del": 1,
-    "update": 3, "announce embed": 4, "status": 0,
-}
 
 config, config_changed = make_config(now_path, INITIAL_COMMAND_PERMISSION)
 ctx.config = config
-to_config_safe(config, config_file_place)
 
 try:
-    log        = config["log"]
-    server_path = normalize_path(config["server_path"])
-    if not os.path.exists(server_path):
+    log         = config["log"]
+    server_path = Path(config["server_path"])
+    if not server_path.exists():
         print("not exist server_path dir")
         wait_for_keypress()
 
-    if not ctx.paths.logs_dir.exists():
-        ctx.paths.logs_dir.mkdir(parents=True, exist_ok=True)
-    if not os.path.exists(server_path + "logs"):
-        os.makedirs(server_path + "logs")
+    ctx.paths.logs_dir.mkdir(parents=True, exist_ok=True)
+    (server_path / "logs").mkdir(exist_ok=True)
 except KeyError:
     print("(log or server_path) in config is broken.")
     wait_for_keypress()
@@ -91,7 +77,7 @@ try:
     ctx.server_args            = config["server_args"].split(" ")
     ctx.server_char_code       = config["server_char_encoding"]
     ctx.STOP                   = config["discord_commands"]["stop"]["submit"]
-    ctx.backup_path            = normalize_path(config["discord_commands"]["backup"]["path"])
+    ctx.backup_path            = Path(config["discord_commands"]["backup"]["path"])
     ctx.web_port               = config["web"]["port"]
     ctx.allow_cmd              = set(config["discord_commands"]["cmd"]["serverin"]["allow_mccmd"])
     ctx.enable_advanced_features = config["enable_advanced_features"]
@@ -103,9 +89,9 @@ try:
     )
     ctx.text.lang              = config["discord_commands"]["lang"]
     ctx.text.command_permission = config["discord_commands"]["permission"]["commands_level"]
-    if ctx.server_name and not os.path.exists(server_path + ctx.server_name):
+    if ctx.server_name and not (ctx.server_path / ctx.server_name).exists():
         LogManager.sys.error(
-            "not exist " + server_path + ctx.server_name + " file. please check your config."
+            f"not exist {ctx.server_path / ctx.server_name} file. please check your config."
         )
 except KeyError:
     LogManager.sys.error("config file is broken. please delete .config and try again.")
@@ -132,19 +118,28 @@ ctx.web_tokens = json.loads(ctx.paths.web_tokens_file.read_text(encoding="utf-8"
 
 if not ctx.paths.token_file.exists():
     ctx.paths.token_file.write_text("ここにtokenを入力", encoding="utf-8")
-    LogManager.sys.error("please write token in " + ctx.paths.token_file.as_posix())
+    LogManager.sys.error(f"please write token in {ctx.paths.token_file}")
     wait_for_keypress()
 ctx.token = ctx.paths.token_file.read_text(encoding="utf-8")
 
-if platform.system() == "Windows":
-    ctx.temp_path = os.environ.get("TEMP", "/tmp") + "/mcserver"
-else:
-    ctx.temp_path = "/tmp/mcserver"
-if not os.path.exists(ctx.temp_path):
-    os.mkdir(ctx.temp_path)
+temp_base = Path(os.environ.get("TEMP", "/tmp")) if platform.system() == "Windows" else Path("/tmp")
+ctx.temp_path = temp_base / "mcserver"
+ctx.temp_path.mkdir(exist_ok=True)
 
+# asyncio.run() を2回呼んでいるのは意図的: update後に sys.exit() が走るケースがあるため
+# 単一 coroutine にまとめると制御フローが変わり update → exit の逐次性が崩れる。
 if config.get("update", {}).get("auto"):
     asyncio.run(update_self_if_commit_changed())
+
+# ── 公開 IP 取得 (起動時 1 回のみ) ──────────────────────────────────────────
+
+import requests as _requests
+try:
+    ctx.web_ip = _requests.get("https://api.ipify.org", timeout=10).text
+except Exception:
+    ctx.web_ip = "unknown"
+    LogManager.sys.error("failed to get public IP address")
+del _requests
 
 # ── テキストデータ ────────────────────────────────────────────────────────────
 
@@ -156,18 +151,18 @@ LogManager.sys.info("text data loaded")
 # ── server stdout リーダーを ctx に格納 ───────────────────────────────────────
 
 from server.stdout import make_reader
-ctx.server_logger = make_reader(log["server"], server_path)
+ctx.server_logger = make_reader(log["server"])
 
 # ── 起動ログ ──────────────────────────────────────────────────────────────────
 
-LogManager.sys.info("bot instance root -> " + now_path)
-LogManager.sys.info("server instance root -> " + server_path)
+LogManager.sys.info(f"bot instance root -> {now_path}")
+LogManager.sys.info(f"server instance root -> {ctx.server_path}")
 if config_changed:
     LogManager.sys.info("added config because necessary elements were missing")
 
 # ── コマンド登録・イベント登録・拡張機能ロード ───────────────────────────────
 
-setup_commands(config, server_path, LogManager.log_msg)
+setup_commands(config, LogManager.log_msg)
 
 # ── Web サーバー起動 ──────────────────────────────────────────────────────────
 

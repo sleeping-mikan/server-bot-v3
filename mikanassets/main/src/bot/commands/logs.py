@@ -16,7 +16,8 @@ setup() 内の @tree.command ハンドラ
 
 from __future__ import annotations
 
-import os
+from collections import deque
+from pathlib import Path
 
 import discord
 from discord import app_commands
@@ -30,7 +31,7 @@ from bot.utils import not_enough_permission, print_user, user_permission
 
 # ── 実装 (Implementation) ────────────────────────────────────────────────────
 
-def _resolve_log_path(filename: str, server_logs_dir: str) -> tuple[str | None, str | None]:
+def _resolve_log_path(filename: str, server_logs_dir: Path) -> tuple[str | None, str | None]:
     """
     戻り値: (full_path, error_key)
     正常: (path, None)
@@ -41,12 +42,12 @@ def _resolve_log_path(filename: str, server_logs_dir: str) -> tuple[str | None, 
     if not filename.endswith(".log"):
         return None, "not_found"
     candidates = [
-        os.path.join(server_logs_dir, filename),
-        str(ctx.paths.log_file(filename)),
+        server_logs_dir / filename,
+        ctx.paths.log_file(filename),
     ]
     for p in candidates:
-        if os.path.exists(p):
-            return p, None
+        if p.exists():
+            return str(p), None
     return None, "not_found"
 
 
@@ -64,26 +65,26 @@ def _trim_to_discord_limit(lines: list[str], limit: int = 1900) -> list[str]:
 
 # ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
-def setup(server_path: str, log_msg: list) -> None:
+def setup(server_path: str, log_msg: deque) -> None:
     """
     server_path : サーバーディレクトリのパス
     log_msg     : main.py 側でリアルタイム更新される最新ログのリスト
     """
     log_logger = LogManager.cmd.getChild("logs")
-    server_logs_dir = server_path + "logs/"
+    server_logs_dir = Path(server_path) / "logs"
 
     async def _autocomplete(interaction: discord.Interaction, current: str):
         current = current.translate(str.maketrans("/\\:", "--_"))
         candidates: list[str] = []
-        if os.path.isdir(server_logs_dir):
-            candidates += os.listdir(server_logs_dir)
+        if server_logs_dir.is_dir():
+            candidates += [p.name for p in server_logs_dir.iterdir()]
         candidates += [p.name for p in ctx.paths.logs_dir.iterdir()]
         filtered = [f for f in candidates if current in f and f.endswith(".log")][-25:]
         return [app_commands.Choice(name=f, value=f) for f in filtered]
 
     @tree.command(name="logs", description=ctx.text.command_desc[ctx.text.lang]["logs"])
     @app_commands.autocomplete(filename=_autocomplete)
-    async def logs_cmd(interaction: discord.Interaction, filename: str = None) -> None:
+    async def logs_cmd(interaction: discord.Interaction, filename: str | None = None) -> None:
         await print_user(log_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/logs {filename}")
         if await user_permission(interaction.user) < ctx.text.command_permission["logs"]:

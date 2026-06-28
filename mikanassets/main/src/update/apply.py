@@ -152,11 +152,12 @@ def restart(now_path: str, now_file: str, logger: logging.Logger) -> None:
 
 
 def main() -> None:
-    if len(sys.argv) < 7:
-        print("usage: update/apply.py <new_repo_root> <now_path> <now_file> <msg_id> <channel_id> <token>")
+    if len(sys.argv) < 6:
+        print("usage: update/apply.py <new_repo_root> <now_path> <now_file> <msg_id> <channel_id>")
         sys.exit(1)
 
-    new_repo_root, now_path, now_file, msg_id, channel_id, token = sys.argv[1:7]
+    new_repo_root, now_path, now_file, msg_id, channel_id = sys.argv[1:6]
+    token = os.environ.get("MIKAN_BOT_TOKEN", "")
 
     logger = setup_logger(now_path)
     logger.info("update/apply.py start")

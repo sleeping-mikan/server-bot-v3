@@ -18,26 +18,22 @@ JSON上の構造:
     - RESPONSE_MSG / ACTIVITY_NAME は「現在の言語の」辞書そのもの (RESPONSE_MSG[...])
 """
 
-import os
 import json
+from pathlib import Path
+
+# このファイル(mikanassets/main/src/bot/text_data.py)から見て assets/text.json の位置
+_ASSETS_PATH = Path(__file__).parent / ".." / ".." / "assets" / "text.json"
 
 
-def _assets_path() -> str:
-    # このファイル(mikanassets/main/src/text_data.py)から見て
-    # mikanassets/main/assets/text.json の位置を求める
-    here = os.path.dirname(os.path.abspath(__file__))
-    return os.path.join(here, "..", "..", "assets", "text.json")
-
-
-def load_text_data(lang: str, allow_cmd: str = ""):
+def load_text_data(lang: str, allow_cmd: set[str] | str = ""):
     """
     text.json を読み込み、(HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help初期値) を返す。
 
-    allow_cmd: HELP_MSGの "/cmd serverin" の説明文に埋め込む、許可されたコマンドの一覧文字列
+    allow_cmd: HELP_MSGの "/cmd serverin" の説明文に埋め込む、許可されたコマンドの一覧
                (元コードでは f-string でその場で埋め込んでいたものを、JSON側では
                "{allow_cmd}" というプレースホルダにしてあるため、ここで.format()する)
     """
-    with open(_assets_path(), "r", encoding="utf-8") as f:
+    with _ASSETS_PATH.open("r", encoding="utf-8") as f:
         data = json.load(f)
 
     help_msg = data["help_msg"]

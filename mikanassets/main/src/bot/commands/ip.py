@@ -18,6 +18,8 @@ import requests
 
 import discord
 
+from core.config_types import IpAddressConfig
+
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
 from core.log_setup import LogManager
@@ -36,7 +38,7 @@ def _get_public_ip() -> str | None:
 
 # ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
-def setup(allow_ip: bool, ip_address_config: dict) -> None:
+def setup(allow_ip: bool, ip_address_config: IpAddressConfig) -> None:
     """
     allow_ip        : config["allow"]["ip"]
     ip_address_config: config["discord_commands"]["ip"]["address"]
@@ -57,9 +59,9 @@ def setup(allow_ip: bool, ip_address_config: dict) -> None:
             ip_logger.error("ip is not allowed")
             return
 
-        prefix = ip_address_config.get("prefix", "")
-        suffix = ip_address_config.get("suffix", "")
-        body = ip_address_config.get("body")
+        prefix = ip_address_config["prefix"]
+        suffix = ip_address_config["suffix"]
+        body   = ip_address_config["body"]
 
         if body is None:
             raw = _get_public_ip()

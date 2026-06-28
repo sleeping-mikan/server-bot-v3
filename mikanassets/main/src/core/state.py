@@ -19,6 +19,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from core.config_types import AppConfig
 from core.paths import BotPaths
 from server.process import ServerProcess
 
@@ -61,20 +62,21 @@ class AppState:
     # ── 認証 ──────────────────────────────────────────────────────
     token:      str | None = None
     web_tokens: list       = field(default_factory=list)
+    web_ip:     str        = ""
 
     # ── 設定 ──────────────────────────────────────────────────────
-    config:                 dict | None = None
+    config:                 AppConfig | None = None
     server_name:            str         = ""
-    server_path:            str         = ""
+    server_path:            Path        = field(default_factory=Path)
     server_args:            list        = field(default_factory=list)
     server_char_code:       str         = "utf-8"
     STOP:                   str         = ""
-    backup_path:            str         = ""
+    backup_path:            Path        = field(default_factory=Path)
     web_port:               int         = 8080
     allow_cmd:              set         = field(default_factory=set)
     enable_advanced_features: bool      = False
     terminal_capacity:      float       = float("inf")
-    temp_path:              str | None  = None
+    temp_path:              Path | None = None
 
     # ── テキスト・言語 ─────────────────────────────────────────────
     text: TextBundle = field(default_factory=TextBundle)

@@ -28,9 +28,13 @@ async def shutdown() -> None:
     for task in ctx.extension_tasks:
         task.cancel()
 
-    loop_tasks = [t for t in (
-        [_update_loop._task] + [e._task for e in ctx.extension_tasks]
-    ) if t is not None]
+    def _running_task(loop):
+        # get_task() は discord.py 2.x の公開 API。旧バージョン互換のため _task にフォールバック。
+        if hasattr(loop, "get_task"):
+            return loop.get_task()
+        return getattr(loop, "_task", None)
+
+    loop_tasks = [t for t in [_running_task(_update_loop)] + [_running_task(e) for e in ctx.extension_tasks] if t is not None]
     if loop_tasks:
         await asyncio.gather(*loop_tasks, return_exceptions=True)
 
