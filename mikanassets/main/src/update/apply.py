@@ -88,10 +88,11 @@ def setup_logger(now_path: str) -> logging.Logger:
     return logger
 
 
-def report_to_discord(channel_id: str, msg_id: str, token: str, content: str, logger: logging.Logger) -> None:
-    """discord.py クライアントを起動せず REST API で直接メッセージを編集する。
+def report_to_discord(channel_id: str, msg_id: str, token: str, field_value: str, logger: logging.Logger) -> None:
+    """discord.py クライアントを起動せず REST API で直接メッセージの embed を編集する。
 
     channel_id / msg_id のいずれかが "0" の場合は何もしない。
+    既存メッセージの embed を取得してフィールドを追加する。
     ネットワークエラーはログに記録するが例外を伝播させない (更新処理の中断を防ぐ)。
     """
     if channel_id == "0" or msg_id == "0" or not token:
@@ -100,7 +101,19 @@ def report_to_discord(channel_id: str, msg_id: str, token: str, content: str, lo
         import requests
         url = f"https://discord.com/api/v10/channels/{channel_id}/messages/{msg_id}"
         headers = {"Authorization": f"Bot {token}", "Content-Type": "application/json"}
-        res = requests.patch(url, headers=headers, data=json.dumps({"content": content}), timeout=10)
+
+        get_res = requests.get(url, headers=headers, timeout=10)
+        if get_res.status_code >= 300:
+            logger.error(f"discord fetch failed: status={get_res.status_code} body={get_res.text}")
+            return
+
+        msg_data = get_res.json()
+        embeds = msg_data.get("embeds", [])
+        embed = embeds[0] if embeds else {}
+        embed.setdefault("fields", [])
+        embed["fields"].append({"name": "", "value": field_value, "inline": False})
+
+        res = requests.patch(url, headers=headers, data=json.dumps({"embeds": [embed]}), timeout=10)
         if res.status_code >= 300:
             logger.error(f"discord report failed: status={res.status_code} body={res.text}")
     except Exception:
