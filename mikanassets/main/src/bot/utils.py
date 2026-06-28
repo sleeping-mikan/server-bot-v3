@@ -55,10 +55,12 @@ async def is_force_administrator(user: discord.User) -> bool:
 async def user_permission(user: discord.User) -> int:
     """ユーザーのコマンド権限レベルを返す。
 
-    管理者は最大レベル、それ以外はコンフィグの members テーブルから取得する。
+    discord_commands.admin.use_discord_admin が true のとき、Discord サーバー管理者は
+    最大権限レベルを得る。false のときは Discord 管理者権限を無視して members テーブルのみで判定する。
     未登録ユーザーは 0 (最低権限) 扱い。
     """
-    if await is_administrator(user):
+    use_discord_admin = ctx.config["discord_commands"]["admin"].get("use_discord_admin", True)
+    if use_discord_admin and await is_administrator(user):
         return max(ctx.text.command_permission.values())
     return get_member_level(user.id)
 

@@ -23,6 +23,9 @@ def setup() -> None:
     @tree.command(name="help", description=ctx.text.command_desc[ctx.text.lang]["help"])
     async def help_cmd(interaction: discord.Interaction) -> None:
         await print_user(help_logger, interaction.user)
+        if await user_permission(interaction.user) < ctx.text.command_permission["help"]:
+            await not_enough_permission(interaction, help_logger)
+            return
         await interaction.response.send_message(embed=ctx.text.send_help)
         help_logger.info("help sent")
 

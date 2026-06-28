@@ -122,9 +122,11 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
     elif "submit" not in cfg["discord_commands"]["stop"]:
         cfg["discord_commands"]["stop"]["submit"] = "stop"
     if "admin" not in cfg["discord_commands"]:
-        cfg["discord_commands"]["admin"] = {"members": {}}
+        cfg["discord_commands"]["admin"] = {"members": {}, "use_discord_admin": True}
     elif "members" not in cfg["discord_commands"]["admin"]:
         cfg["discord_commands"]["admin"]["members"] = {}
+    if "use_discord_admin" not in cfg["discord_commands"]["admin"]:
+        cfg["discord_commands"]["admin"]["use_discord_admin"] = True
     if "lang" not in cfg["discord_commands"]:
         cfg["discord_commands"]["lang"] = "en"
     if "server_name" not in cfg:
@@ -199,7 +201,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
                 "terminal": {"discord": False, "capacity": "inf"},
                 "stop": {"submit": "stop"},
                 "backup": {"path": str(default_backup) + "/"},
-                "admin": {"members": {}},
+                "admin": {"members": {}, "use_discord_admin": True},
                 "lang": "en",
             },
             "enable_advanced_features": False,

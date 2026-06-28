@@ -99,6 +99,9 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
     )
     async def view_cmd(interaction: discord.Interaction, user: discord.User, detail: bool) -> None:
         await print_user(permission_logger, interaction.user)
+        if await user_permission(interaction.user) < ctx.text.command_permission["permission view"]:
+            await not_enough_permission(interaction, permission_logger)
+            return
         embed     = ModifiedEmbeds.DefaultEmbed(title=f"/permission view {user} {detail}")
         max_len   = max(len(k) for k in ctx.text.command_permission)
         advanced  = "☑" if ctx.enable_advanced_features else "☐"
