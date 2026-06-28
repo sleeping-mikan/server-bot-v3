@@ -1,24 +1,27 @@
 """
-update_apply.py — 自己更新の実行役
+update/apply.py — 自己更新の実行役
 
 main.py から `os.execv` で起動される。役割は以下の通り:
-    1. ダウンロード済みの新しいリポジトリ内容で mikanassets/main(src+assets)を入れ替える
-    2. server.py(エントリファイル)自体も新しい内容に入れ替える
-    3. Discordの完了報告メッセージを編集する(可能な場合)
-    4. server.py を再起動する
+    1. ダウンロード済みの新しいリポジトリ内容で mikanassets/main (src + assets) を入れ替える
+    2. server.py (エントリファイル) 自体も新しい内容に入れ替える
+    3. Discord の完了報告メッセージを REST API で直接編集する (可能な場合)
+    4. server.py を再起動する (os.execv によりプロセスを置き換え)
 
-このファイルは mikanassets/main/src/update_apply.py に置かれたまま実行される
-(要望により、mikanassets直下への複製は行わない)。
-Pythonはスクリプトの実行開始時点で既にソースを読み込み済みのため、
+旧パス: mikanassets/main/src/update_apply.py
+新パス: mikanassets/main/src/update/apply.py
+core/paths.py の update_apply_file プロパティも合わせて更新済み。
+
+このファイルは mikanassets/main/src/update/ に置かれたまま実行される。
+Python はスクリプトの実行開始時点で既にソースを読み込み済みのため、
 実行中に自分自身が含まれるディレクトリを移動・削除しても動作に影響しない。
 
-引数:
+引数 (sys.argv):
     argv[1]: new_repo_root   ダウンロード・展開済みの新しいリポジトリのルートパス
     argv[2]: now_path        server.py を基準とするベースディレクトリ
     argv[3]: now_file        エントリファイル名 (通常 "server.py")
-    argv[4]: msg_id          完了報告先のDiscordメッセージID ("0"なら報告しない)
-    argv[5]: channel_id      完了報告先のDiscordチャンネルID ("0"なら報告しない)
-    argv[6]: token           完了報告メッセージ編集に使うBotトークン
+    argv[4]: msg_id          完了報告先の Discord メッセージ ID ("0" なら報告しない)
+    argv[5]: channel_id      完了報告先の Discord チャンネル ID ("0" なら報告しない)
+    argv[6]: token           完了報告メッセージ編集に使う Bot トークン
 """
 
 import os
@@ -31,7 +34,12 @@ import traceback
 
 
 def setup_logger(now_path: str) -> logging.Logger:
-    logger = logging.getLogger("update_apply")
+    """ファイル + コンソール両方に出力するスタンドアロンロガーを返す。
+
+    このスクリプトは LogManager を使わず単独動作するため、
+    ここで独自にハンドラを設定する。
+    """
+    logger = logging.getLogger("update.apply")
     logger.setLevel(logging.INFO)
     log_dir = os.path.join(now_path, "logs")
     os.makedirs(log_dir, exist_ok=True)
@@ -45,7 +53,11 @@ def setup_logger(now_path: str) -> logging.Logger:
 
 
 def report_to_discord(channel_id: str, msg_id: str, token: str, content: str, logger: logging.Logger) -> None:
-    """discord.pyのクライアントを起動せず、REST APIで直接メッセージを編集する"""
+    """discord.py クライアントを起動せず REST API で直接メッセージを編集する。
+
+    channel_id / msg_id のいずれかが "0" の場合は何もしない。
+    ネットワークエラーはログに記録するが例外を伝播させない (更新処理の中断を防ぐ)。
+    """
     if channel_id == "0" or msg_id == "0" or not token:
         return
     try:
@@ -60,15 +72,21 @@ def report_to_discord(channel_id: str, msg_id: str, token: str, content: str, lo
 
 
 def replace_main(new_repo_root: str, now_path: str, logger: logging.Logger) -> None:
-    """mikanassets/main(src/ と assets/ をまとめて)を新しい内容に入れ替える"""
+    """mikanassets/main (src/ と assets/ をまとめて) を新しい内容に入れ替える。
+
+    入れ替え手順:
+        1. 現在の mikanassets/main を main_backup_before_update へ退避する
+        2. 新しい mikanassets/main を配置する
+        3. 成功ならバックアップを削除、失敗ならバックアップを戻す
+    """
     new_main_dir = os.path.join(new_repo_root, "mikanassets", "main")
     if not os.path.isdir(new_main_dir):
         raise RuntimeError(f"new repository does not contain mikanassets/main/: {new_main_dir}")
 
     current_main_dir = os.path.join(now_path, "mikanassets", "main")
-    backup_main_dir = os.path.join(now_path, "mikanassets", "main_backup_before_update")
+    backup_main_dir  = os.path.join(now_path, "mikanassets", "main_backup_before_update")
 
-    # 失敗時に戻せるよう、入れ替え前に一旦バックアップへ退避してから新しいものを配置する
+    # 既存バックアップがあれば先に消す (前回の更新が中断したケース)
     if os.path.exists(backup_main_dir):
         shutil.rmtree(backup_main_dir)
     if os.path.exists(current_main_dir):
@@ -77,7 +95,7 @@ def replace_main(new_repo_root: str, now_path: str, logger: logging.Logger) -> N
     try:
         shutil.move(new_main_dir, current_main_dir)
     except Exception:
-        # 失敗したらバックアップを戻す
+        # 配置に失敗した場合はバックアップから元に戻してロールバック
         logger.error("failed to move new mikanassets/main. rolling back.\n" + traceback.format_exc())
         if os.path.exists(current_main_dir):
             shutil.rmtree(current_main_dir)
@@ -85,7 +103,7 @@ def replace_main(new_repo_root: str, now_path: str, logger: logging.Logger) -> N
             shutil.move(backup_main_dir, current_main_dir)
         raise
     else:
-        # 成功したらバックアップは削除する
+        # 配置成功: バックアップは不要なので削除する
         if os.path.exists(backup_main_dir):
             shutil.rmtree(backup_main_dir)
 
@@ -93,6 +111,10 @@ def replace_main(new_repo_root: str, now_path: str, logger: logging.Logger) -> N
 
 
 def replace_entry_file(new_repo_root: str, now_path: str, now_file: str, logger: logging.Logger) -> None:
+    """エントリファイル (通常 server.py) を新しいものに上書きする。
+
+    新しいリポジトリに server.py が存在しない場合はスキップ (エラーログのみ)。
+    """
     new_server_py = os.path.join(new_repo_root, "server.py")
     if not os.path.isfile(new_server_py):
         logger.error(f"new repository does not contain server.py: {new_server_py} (skip entry file update)")
@@ -103,8 +125,12 @@ def replace_entry_file(new_repo_root: str, now_path: str, now_file: str, logger:
 
 
 def cleanup_temp(new_repo_root: str, logger: logging.Logger) -> None:
-    # new_repo_root は temp_path/new_repo/{repo}-{branch} の形なので、
-    # その親(temp_path/new_repo)をまるごと削除する
+    """解凍した一時ディレクトリ (new_repo_root の親) を削除する。
+
+    new_repo_root は temp_path/new_repo/{repo}-{branch} の形なので、
+    その親 (temp_path/new_repo) をまるごと削除する。
+    失敗しても更新自体は完了しているためエラーログだけ記録して続行する。
+    """
     tmp_dir = os.path.dirname(new_repo_root)
     try:
         if os.path.isdir(tmp_dir):
@@ -114,6 +140,11 @@ def cleanup_temp(new_repo_root: str, logger: logging.Logger) -> None:
 
 
 def restart(now_path: str, now_file: str, logger: logging.Logger) -> None:
+    """os.execv で server.py を再起動する (プロセスを置き換える)。
+
+    os.execv は現在のプロセスを新しいプロセスで完全に置き換えるため、
+    この関数が返ることはない。
+    """
     server_py_path = os.path.join(now_path, now_file)
     logger.info(f"restarting -> {server_py_path}")
     os.chdir(now_path)
@@ -122,16 +153,16 @@ def restart(now_path: str, now_file: str, logger: logging.Logger) -> None:
 
 def main() -> None:
     if len(sys.argv) < 7:
-        print("usage: update_apply.py <new_repo_root> <now_path> <now_file> <msg_id> <channel_id> <token>")
+        print("usage: update/apply.py <new_repo_root> <now_path> <now_file> <msg_id> <channel_id> <token>")
         sys.exit(1)
 
     new_repo_root, now_path, now_file, msg_id, channel_id, token = sys.argv[1:7]
 
     logger = setup_logger(now_path)
-    logger.info("update_apply.py start")
+    logger.info("update/apply.py start")
     logger.info(f"new_repo_root={new_repo_root} now_path={now_path} now_file={now_file}")
 
-    # 直前のプロセス(main.py)がファイルハンドルを完全に閉じるまで少し待つ
+    # 直前のプロセス (main.py) がファイルハンドルを完全に閉じるまで少し待つ
     time.sleep(1.0)
 
     try:

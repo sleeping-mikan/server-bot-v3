@@ -1,16 +1,17 @@
 """
-commands/logs.py 窶・/logs 繧ｳ繝槭Φ繝・
-螳溯｣・(Implementation)
+commands/logs.py — /logs コマンド
+
+実装 (Implementation)
 ---------------------
 _resolve_log_path(filename, server_path)
-  竊・(path: str | None, error_key: str | None)
-  繝輔ぃ繧､繝ｫ蜷阪ｒ讀懆ｨｼ縺励※繝輔Ν繝代せ繧定ｿ斐☆縲ゆｸ肴ｭ｣縺ｪ繧・error_key 繧定ｿ斐☆縲・
+  → (path: str | None, error_key: str | None)
+  ファイル名を検証してフルパスを返す。不正な場合は error_key を返す。
 _trim_to_discord_limit(lines)
-  竊・list[str]
-  2000 譁・ｭ励ｒ雜・∴縺ｪ縺・ｈ縺・忰蟆ｾ縺九ｉ隧ｰ繧√ｋ縲・
-陦ｨ遉ｺ (Presentation)
+  → list[str]
+  2000 文字を超えないよう末尾から詰める。
+表示 (Presentation)
 --------------------
-setup() 蜀・・ @tree.command 繝上Φ繝峨Λ
+setup() 内の @tree.command ハンドラ
 """
 
 from __future__ import annotations
@@ -27,13 +28,13 @@ from core.state import ctx
 from bot.utils import not_enough_permission, print_user, user_permission
 
 
-# 笏笏 螳溯｣・(Implementation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+# ── 実装 (Implementation) ────────────────────────────────────────────────────
 
 def _resolve_log_path(filename: str, server_logs_dir: str) -> tuple[str | None, str | None]:
     """
-    謌ｻ繧雁､: (full_path, error_key)
-    豁｣蟶ｸ: (path, None)
-    繧ｨ繝ｩ繝ｼ: (None, error_key)   error_key 縺ｯ RESPONSE_MSG["logs"][error_key]
+    戻り値: (full_path, error_key)
+    正常: (path, None)
+    エラー: (None, error_key)   error_key は RESPONSE_MSG["logs"][error_key]
     """
     if any(c in filename for c in "/\\%"):
         return None, "cant_access_other_dir"
@@ -61,12 +62,13 @@ def _trim_to_discord_limit(lines: list[str], limit: int = 1900) -> list[str]:
     return result
 
 
-# 笏笏 陦ｨ遉ｺ (Presentation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+# ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
 def setup(server_path: str, log_msg: list) -> None:
     """
-    server_path : 繧ｵ繝ｼ繝舌・繝・ぅ繝ｬ繧ｯ繝医Μ縺ｮ繝代せ
-    log_msg     : main.py 蛛ｴ縺ｧ繝ｪ繧｢繝ｫ繧ｿ繧､繝譖ｴ譁ｰ縺輔ｌ繧区怙譁ｰ繝ｭ繧ｰ縺ｮ繝ｪ繧ｹ繝・    """
+    server_path : サーバーディレクトリのパス
+    log_msg     : main.py 側でリアルタイム更新される最新ログのリスト
+    """
     log_logger = LogManager.cmd.getChild("logs")
     server_logs_dir = server_path + "logs/"
 

@@ -72,7 +72,8 @@ class BotPaths:
 
     @property
     def update_apply_file(self) -> Path:
-        return self.src_dir / "update_apply.py"
+        """自己更新スクリプト。旧パス (src/update_apply.py) から移動済み。"""
+        return self.src_dir / "update" / "apply.py"
 
     @property
     def assets_dir(self) -> Path:

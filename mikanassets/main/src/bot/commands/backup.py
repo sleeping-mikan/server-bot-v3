@@ -13,9 +13,8 @@ from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
+from core.path_utils import is_important_bot_file, is_path_within_scope
 from bot.utils import (
-    is_important_bot_file,
-    is_path_within_scope,
     is_running_server,
     not_enough_permission,
     print_user,

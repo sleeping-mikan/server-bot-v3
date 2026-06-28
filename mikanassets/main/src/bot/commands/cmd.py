@@ -1,14 +1,17 @@
 """
-commands/cmd.py 窶・/cmd serverin, /cmd stdin * 繧ｳ繝槭Φ繝・
-螳溯｣・(Implementation)
+commands/cmd.py — /cmd serverin, /cmd stdin * コマンド
+
+実装 (Implementation)
 ---------------------
-_send_server_cmd(command) 竊・(ok: bool, error_key: str | None)
-  繧ｵ繝ｼ繝舌・縺ｫ stdin 繧ｳ繝槭Φ繝峨ｒ騾∽ｿ｡縺礼ｵ先棡繧定ｿ斐☆縲・
-繝輔ぃ繧､繝ｫ謫堺ｽ懃ｳｻ (ls/mk/rm/mkdir/rmdir/mv/send-discord/wget) 縺ｯ
-繝代せ讀懆ｨｼ繝ｭ繧ｸ繝・け繧・utils.is_path_within_scope / is_important_bot_file 縺ｫ蟋碑ｭｲ縺励・螳滄圀縺ｮ繝輔ぃ繧､繝ｫ謫堺ｽ懊ｒ邏皮ｲ九↑ Python 讓呎ｺ悶Λ繧､繝悶Λ繝ｪ蜻ｼ縺ｳ蜃ｺ縺励〒險倩ｿｰ縺吶ｋ縲・
-陦ｨ遉ｺ (Presentation)
+_send_server_cmd(command) → ServeInResult
+  サーバーへ stdin コマンドを送信し結果を返す。
+ファイル操作コマンド (ls/mk/rm/mkdir/rmdir/mv/send-discord/wget) は
+パス検証を core.path_utils.is_path_within_scope / is_important_bot_file に委譲し、
+実際のファイル操作を標準 Python ライブラリで実装する。
+
+表示 (Presentation)
 --------------------
-setup() 蜀・・ @tree.command 繝上Φ繝峨Λ
+setup() 内の @tree.command ハンドラが Discord スラッシュコマンドを登録する。
 """
 
 from __future__ import annotations
@@ -27,11 +30,10 @@ from bot.client import tree
 from web.download_server import SendDiscordSelfServer
 from bot.embeds import ModifiedEmbeds
 from core.log_setup import LogManager
+from core.path_utils import is_important_bot_file, is_path_within_scope
 from core.state import ctx
 from bot.utils import (
     is_administrator,
-    is_important_bot_file,
-    is_path_within_scope,
     is_running_server,
     is_stopped_server,
     not_enough_permission,
@@ -40,7 +42,7 @@ from bot.utils import (
 )
 
 
-# 笏笏 螳溯｣・(Implementation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+# ── 実装 (Implementation) ────────────────────────────────────────────────────
 
 class ServeInResult(Enum):
     SUCCESS = auto()
@@ -65,9 +67,9 @@ def _abs_server_path(rel: str) -> str:
     return os.path.abspath(os.path.join(ctx.server_path, rel))
 
 
-# 笏笏 陦ｨ遉ｺ (Presentation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+# ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
-def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺溘ａ髟ｷ縺・
+def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     cmd_logger = LogManager.cmd.getChild("file")
     stdin_logger = cmd_logger.getChild("stdin")
     serverin_logger = cmd_logger.getChild("serverin")
@@ -84,7 +86,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
     command_group_cmd_stdin = app_commands.Group(name="stdin", description="stdin group")
     command_group_cmd.add_command(command_group_cmd_stdin)
 
-    # /cmd serverin 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd serverin ───────────────────────────────────────────────────────────
 
     @command_group_cmd.command(name="serverin", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["serverin"])
     async def serverin_cmd(interaction: discord.Interaction, command: str) -> None:
@@ -118,7 +120,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
             await interaction.response.send_message(embed=embed)
             break
 
-    # /cmd stdin ls 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin ls ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="ls", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["ls"])
     async def ls_cmd(interaction: discord.Interaction, file_path: str) -> None:
@@ -162,7 +164,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["ls"]["success"].format(path, formatted), inline=False)
             await interaction.response.send_message(embed=embed)
 
-    # /cmd stdin mk 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin mk ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="mk", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["mk"])
     async def mk_cmd(interaction: discord.Interaction, file_path: str, file: discord.Attachment | None = None) -> None:
@@ -200,7 +202,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mk"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
 
-    # /cmd stdin rm 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin rm ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="rm", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["rm"])
     async def rm_cmd(interaction: discord.Interaction, file_path: str) -> None:
@@ -235,7 +237,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rm"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
 
-    # /cmd stdin mkdir 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin mkdir ────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="mkdir", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["mkdir"])
     async def mkdir_cmd(interaction: discord.Interaction, dir_path: str) -> None:
@@ -258,7 +260,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mkdir"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
 
-    # /cmd stdin rmdir 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin rmdir ────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="rmdir", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["rmdir"])
     async def rmdir_cmd(interaction: discord.Interaction, dir_path: str) -> None:
@@ -289,7 +291,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rmdir"]["success"].format(path), inline=False)
         await interaction.response.send_message(embed=embed)
 
-    # /cmd stdin mv 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin mv ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="mv", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["mv"])
     async def mv_cmd(interaction: discord.Interaction, path: str, dest: str) -> None:
@@ -330,7 +332,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mv"]["success"].format(abs_path, abs_dest), inline=False)
         await interaction.response.send_message(embed=embed)
 
-    # /cmd stdin send-discord 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin send-discord ─────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="send-discord", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["send-discord"])
     async def send_discord_cmd(interaction: discord.Interaction, path: str) -> None:
@@ -355,7 +357,7 @@ def setup() -> None:  # noqa: C901 (隍・焚繧ｵ繝悶さ繝槭Φ繝峨・縺
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["send-discord"]["send_capacity_error"].format(interaction.user.id, result[1], result[2]), inline=False)
         await interaction.response.send_message(embed=embed, ephemeral=True)
 
-    # /cmd stdin wget 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+    # /cmd stdin wget ─────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="wget", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["wget"])
     async def wget_cmd(interaction: discord.Interaction, url: str, path: str = "mi_dl_file.tmp") -> None:

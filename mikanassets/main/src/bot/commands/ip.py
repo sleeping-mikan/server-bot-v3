@@ -1,12 +1,13 @@
 """
-commands/ip.py 窶・/ip 繧ｳ繝槭Φ繝・
-螳溯｣・(Implementation)
----------------------
-_get_public_ip() 竊・str | None     螟夜Κ IP 繧貞叙蠕励☆繧・(螟ｱ謨玲凾縺ｯ None)
+commands/ip.py — /ip コマンド
 
-陦ｨ遉ｺ (Presentation)
+実装 (Implementation)
+---------------------
+_get_public_ip() → str | None     外部 IP を取得する。(失敗時は None)
+
+表示 (Presentation)
 --------------------
-setup() 蜀・・ @tree.command 繝上Φ繝峨Λ
+setup() 内の @tree.command ハンドラ
 """
 
 from __future__ import annotations
@@ -24,7 +25,7 @@ from core.state import ctx
 from bot.utils import not_enough_permission, print_user, user_permission
 
 
-# 笏笏 螳溯｣・(Implementation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+# ── 実装 (Implementation) ────────────────────────────────────────────────────
 
 def _get_public_ip() -> str | None:
     try:
@@ -33,12 +34,12 @@ def _get_public_ip() -> str | None:
         return None
 
 
-# 笏笏 陦ｨ遉ｺ (Presentation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
+# ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
 def setup(allow_ip: bool, server_port: str | None = None) -> None:
     """
     allow_ip   : config["allow"]["ip"]
-    server_port: Minecraft 繧ｵ繝ｼ繝舌・縺ｮ繝昴・繝育分蜿ｷ (mc-server 縺ｮ蝣ｴ蜷医・縺ｿ)
+    server_port: Minecraft サーバーのポート番号 (mc-server の場合のみ)
     """
     ip_logger = LogManager.cmd.getChild("ip")
 

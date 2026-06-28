@@ -170,8 +170,14 @@ def _create_flask_app(flask_logger: logging.Logger) -> Flask:
         if ctx.server_process.is_stopped():
             return jsonify("server is not running")
         if user_input == ctx.STOP:
-            ctx.use_stop = True
-        ctx.server_process.write(user_input)
+            # 停止コマンドは server/control.py の stop_server() に委譲する。
+            # ctx.use_stop のセットと server_process.write の両方をここで直接
+            # 操作せず一か所にまとめることで、Discord コマンドと Web UI の
+            # 停止ロジックが常に同一になる。
+            from server.control import stop_server
+            stop_server()
+        else:
+            ctx.server_process.write(user_input)
         return jsonify(f"result: {user_input}")
 
     return app
