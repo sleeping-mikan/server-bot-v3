@@ -97,6 +97,18 @@ def create_backup_sync(from_path: str) -> str:
     return dst
 
 
+def apply_backup_sync(backup_name: str, dest_path: str) -> None:
+    """バックアップを同期的に適用する。Flask のような同期コンテキストから呼ぶ用。
+
+    dest_path が既に存在する場合は削除してから上書きする。
+    """
+    src = ctx.backup_path / backup_name
+    dest = Path(dest_path)
+    if dest.exists():
+        shutil.rmtree(dest)
+    shutil.copytree(str(src), str(dest))
+
+
 async def create_backup(
     from_path:   str,
     on_progress: ProgressCallback | None = None,

@@ -33,22 +33,58 @@ import logging
 import traceback
 
 
-def setup_logger(now_path: str) -> logging.Logger:
-    """ファイル + コンソール両方に出力するスタンドアロンロガーを返す。
+# 本体 (log_setup.py) の ColoredFormatter / PlainFormatter に合わせた書式を再現する。
+# update/apply.py は単体スクリプトのため core モジュールを使わず直接定義する。
+_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+_LEVEL_W  = 8
+_NAME_W   = 10
 
-    このスクリプトは LogManager を使わず単独動作するため、
-    ここで独自にハンドラを設定する。
+_RESET    = '\033[0m'
+_DT_COLOR = '\033[1m\033[30m'   # BOLD + BLACK
+_LEVEL_COLORS = {
+    'DEBUG':    '\033[1m\033[37m',  # BOLD + WHITE
+    'INFO':     '\033[1m\033[34m',  # BOLD + BLUE
+    'WARNING':  '\033[1m\033[33m',  # BOLD + YELLOW
+    'ERROR':    '\033[1m\033[31m',  # BOLD + RED
+    'CRITICAL': '\033[1m\033[35m',  # BOLD + MAGENTA
+}
+
+
+class _ColoredFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        dt    = f"{_DT_COLOR}{self.formatTime(record, self.datefmt)}{_RESET}"
+        level = f"{_LEVEL_COLORS.get(record.levelname, '')}{record.levelname.ljust(_LEVEL_W)}{_RESET}"
+        name  = record.name.ljust(_NAME_W)
+        return f"{dt} {level} {name}: {record.getMessage()}"
+
+
+class _PlainFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        dt    = self.formatTime(record, self.datefmt)
+        level = record.levelname.ljust(_LEVEL_W)
+        name  = record.name.ljust(_NAME_W)
+        return f"{dt} {level} {name}: {record.getMessage()}"
+
+
+def setup_logger(now_path: str) -> logging.Logger:
+    """ファイル (PlainFormatter) + コンソール (ColoredFormatter) のロガーを返す。
+
+    書式は本体の log_setup.py に合わせる:
+        {datetime} {level:-8} {name:-10}: {message}
     """
     logger = logging.getLogger("update.apply")
     logger.setLevel(logging.INFO)
+
     log_dir = os.path.join(now_path, "logs")
     os.makedirs(log_dir, exist_ok=True)
-    handler = logging.FileHandler(os.path.join(log_dir, "update_apply.log"), encoding="utf-8")
-    handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s"))
-    logger.addHandler(handler)
-    stream = logging.StreamHandler()
-    stream.setFormatter(logging.Formatter("%(asctime)s %(levelname)-8s: %(message)s"))
-    logger.addHandler(stream)
+    fh = logging.FileHandler(os.path.join(log_dir, "update_apply.log"), encoding="utf-8")
+    fh.setFormatter(_PlainFormatter(datefmt=_DATE_FMT))
+    logger.addHandler(fh)
+
+    sh = logging.StreamHandler()
+    sh.setFormatter(_ColoredFormatter(datefmt=_DATE_FMT))
+    logger.addHandler(sh)
+
     return logger
 
 

@@ -54,10 +54,7 @@ def setup_commands(config: AppConfig, log_msg: deque) -> None:
     permission_cmd.setup(get_text_dat=load_text)
     terminal_cmd.setup()
     tokengen_cmd.setup()
-    ip_cmd.setup(
-        allow_ip=config["allow"]["ip"],
-        ip_address_config=config["discord_commands"]["ip"]["address"],
-    )
+    ip_cmd.setup()
     logs_cmd.setup(server_path=str(ctx.server_path), log_msg=log_msg)
     cmd_cmd.setup()
     backup_cmd.setup()

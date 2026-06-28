@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import asyncio
 import io
+import zipfile
 from enum import Enum, auto
 from pathlib import Path
 from shutil import move as shutil_move, rmtree
@@ -32,6 +33,7 @@ from bot.embeds import ModifiedEmbeds
 from core.log_setup import LogManager
 from core.path_utils import is_important_bot_file, is_path_within_scope
 from core.state import ctx
+from core.zip_utils import safe_unzip
 from bot.utils import (
     is_administrator,
     is_running_server,
@@ -81,6 +83,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     mv_logger = stdin_logger.getChild("mv")
     send_discord_logger = stdin_logger.getChild("send-discord")
     wget_logger = stdin_logger.getChild("wget")
+    unzip_logger = stdin_logger.getChild("unzip")
 
     command_group_cmd = app_commands.Group(name="cmd", description="cmd group")
     command_group_cmd_stdin = app_commands.Group(name="stdin", description="stdin group")
@@ -397,6 +400,43 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
                 return
         wget_logger.info(f"download success -> {url} to {save_path}")
         embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["wget"]["download_success"].format(url, save_path), inline=False)
+        await interaction.response.send_message(embed=embed)
+
+    # /cmd stdin unzip ────────────────────────────────────────────────────────
+
+    @command_group_cmd_stdin.command(name="unzip", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["unzip"])
+    async def unzip_cmd(interaction: discord.Interaction, file_path: str) -> None:
+        await print_user(unzip_logger, interaction.user)
+        embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin unzip {file_path}")
+        if await user_permission(interaction.user) < ctx.text.command_permission["cmd stdin unzip"]:
+            await not_enough_permission(interaction, unzip_logger)
+            return
+        path = _abs_server_path(file_path)
+        if not is_path_within_scope(path):
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        if not path.exists():
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["unzip"]["not_found"].format(path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        if path.suffix.lower() != ".zip":
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["unzip"]["not_zip"].format(path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        try:
+            count = await asyncio.to_thread(safe_unzip, path, path.parent)
+        except ValueError as e:
+            unzip_logger.error(f"unsafe path in zip: {e}")
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["unzip"]["unsafe_path"].format(e), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        except zipfile.BadZipFile:
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["unzip"]["not_zip"].format(path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        unzip_logger.info(f"unzip -> {path} ({count} files)")
+        embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["unzip"]["success"].format(path, count), inline=False)
         await interaction.response.send_message(embed=embed)
 
     tree.add_command(command_group_cmd)

@@ -11,20 +11,56 @@ server-bot-v3 のエントリポイント
 Bot/Webサーバーとしての実処理は mikanassets/src 側に存在する。
 """
 
-import os
-import sys
 import io
+import logging
+import os
 import shutil
+import sys
 import zipfile
 import urllib.request
 import urllib.error
 
 # ------------------------------------------------------------------
+# ロガー設定
+# 本体 (log_setup.py) の ColoredFormatter / PlainFormatter に合わせた書式を再現する。
+# server.py は単体スクリプトのため core モジュールを使わず直接定義する。
+# ------------------------------------------------------------------
+_DATE_FMT = "%Y-%m-%d %H:%M:%S"
+_LEVEL_W  = 8
+_NAME_W   = 10
+
+_RESET    = '\033[0m'
+_DT_COLOR = '\033[1m\033[30m'   # BOLD + BLACK
+_LEVEL_COLORS = {
+    'DEBUG':    '\033[1m\033[37m',  # BOLD + WHITE
+    'INFO':     '\033[1m\033[34m',  # BOLD + BLUE
+    'WARNING':  '\033[1m\033[33m',  # BOLD + YELLOW
+    'ERROR':    '\033[1m\033[31m',  # BOLD + RED
+    'CRITICAL': '\033[1m\033[35m',  # BOLD + MAGENTA
+}
+
+
+class _ColoredFormatter(logging.Formatter):
+    def format(self, record: logging.LogRecord) -> str:
+        dt    = f"{_DT_COLOR}{self.formatTime(record, self.datefmt)}{_RESET}"
+        level = f"{_LEVEL_COLORS.get(record.levelname, '')}{record.levelname.ljust(_LEVEL_W)}{_RESET}"
+        name  = record.name.ljust(_NAME_W)
+        return f"{dt} {level} {name}: {record.getMessage()}"
+
+
+_handler = logging.StreamHandler(sys.stdout)
+_handler.setFormatter(_ColoredFormatter(datefmt=_DATE_FMT))
+
+_logger = logging.getLogger("server.py")
+_logger.setLevel(logging.INFO)
+_logger.addHandler(_handler)
+
+# ------------------------------------------------------------------
 # 設定: 本体を配置している GitHub リポジトリ
 # ------------------------------------------------------------------
 # TODO: リポジトリを公開したら、ここを実際の owner/repo に書き換えてください。
-GITHUB_OWNER = "sleeping-mikan"
-GITHUB_REPO = "server-bot-v3"
+GITHUB_OWNER  = "sleeping-mikan"
+GITHUB_REPO   = "server-bot-v3"
 GITHUB_BRANCH = "main"
 
 # 上記から自動生成される、ブランチのzipballURL
@@ -33,11 +69,11 @@ GITHUB_ZIP_URL = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/archive/refs/
 # ------------------------------------------------------------------
 # パスの定義
 # ------------------------------------------------------------------
-THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+THIS_DIR        = os.path.dirname(os.path.abspath(__file__))
 MIKANASSETS_DIR = os.path.join(THIS_DIR, "mikanassets")
-MAIN_DIR = os.path.join(MIKANASSETS_DIR, "main")
-SRC_DIR = os.path.join(MAIN_DIR, "src")
-MAIN_FILE = os.path.join(SRC_DIR, "main.py")
+MAIN_DIR        = os.path.join(MIKANASSETS_DIR, "main")
+SRC_DIR         = os.path.join(MAIN_DIR, "src")
+MAIN_FILE       = os.path.join(SRC_DIR, "main.py")
 
 
 def is_src_ready() -> bool:
@@ -47,8 +83,8 @@ def is_src_ready() -> bool:
 
 def download_and_extract_src() -> None:
     """GitHubリポジトリから本体をダウンロードし、mikanassets/src に展開する"""
-    print(f"[server.py] mikanassets/src が見つかりません。GitHubから取得します。")
-    print(f"[server.py] download: {GITHUB_ZIP_URL}")
+    _logger.info("mikanassets/src not found. Downloading from GitHub.")
+    _logger.info(f"download: {GITHUB_ZIP_URL}")
 
     os.makedirs(MIKANASSETS_DIR, exist_ok=True)
 
@@ -56,8 +92,8 @@ def download_and_extract_src() -> None:
         with urllib.request.urlopen(GITHUB_ZIP_URL, timeout=60) as res:
             zip_bytes = res.read()
     except urllib.error.URLError as e:
-        print(f"[server.py] ダウンロードに失敗しました: {e}")
-        print("[server.py] ネットワーク接続、またはリポジトリ設定(GITHUB_OWNER/GITHUB_REPO/GITHUB_BRANCH)を確認してください。")
+        _logger.error(f"Download failed: {e}")
+        _logger.error("Check your network connection or repository settings (GITHUB_OWNER/GITHUB_REPO/GITHUB_BRANCH).")
         sys.exit(1)
 
     # zipを一時フォルダに展開する
@@ -72,7 +108,7 @@ def download_and_extract_src() -> None:
     # GitHubのzipballは "{repo}-{branch}/" という単一のルートフォルダを持つので、それを探す
     extracted_items = os.listdir(tmp_extract_dir)
     if len(extracted_items) != 1:
-        print("[server.py] 想定外のzip構成です。展開結果:", extracted_items)
+        _logger.error(f"Unexpected zip structure: {extracted_items}")
         sys.exit(1)
     extracted_root = os.path.join(tmp_extract_dir, extracted_items[0])
 
@@ -100,17 +136,17 @@ def download_and_extract_src() -> None:
     shutil.rmtree(tmp_extract_dir)
 
     if not is_src_ready():
-        print(f"[server.py] 本体の配置に失敗しました。main.pyが見つかりません: {MAIN_FILE}")
+        _logger.error(f"Failed to place main module. main.py not found: {MAIN_FILE}")
         sys.exit(1)
 
-    print(f"[server.py] 本体を配置しました: {MAIN_DIR}")
+    _logger.info(f"Main module placed: {MAIN_DIR}")
 
 
 def run_main() -> int:
     """mikanassets/src/main.py をサブプロセスとして実行し、終了コードを返す"""
     import subprocess
 
-    print(f"[server.py] 起動します: {MAIN_FILE}")
+    _logger.info(f"Starting: {MAIN_FILE}")
     # 本体に渡された引数(server.py自身への引数)をそのまま引き継ぐ
     args = [sys.executable, MAIN_FILE, *sys.argv[1:]]
 

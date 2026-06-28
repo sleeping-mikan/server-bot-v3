@@ -1,147 +1,39 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-    <title>Login</title>
-</head>
-<style>
-    body{
-        background-color: #EEEEEE;
-        margin: 0;
-        height: auto;
-        display: flex;
-        width: 100vw;
-        flex-wrap: wrap;
-    }
-    #langChenge{
-        position: relative;
-        top: 0%;
-        left: 0%;
-        width: 100vw;
-        height: 100vh;
-    }
-    #field{
-        position: relative;
-        top:10px;
-        left: 50%;
-        width: 50%;
-        height: 600px;
-        border-radius: 20px;
-        background-color: white;
-        transform: translate(-50%, 0%);
-    }
-    .msg {
-        position: absolute;
-        color: black;
-        font-size: 24px;
-        text-align: center;
-        top:100px;
-        left: 50%;
-        transform: translate(-50%, 0%);
-        width: 300px;
-    }
-    @media screen and (max-width: 700px) {
-        #field{
-            width: 90%;
-            height: 450px;
-        }
-        .msg {
-            top:50px;
-        }
-        #token{
-            top: 150px;
-        }
-        #login{
-            top: 250px;
-        }
-    }
-    #token{
-        position: absolute;
-        top: 250px;
-        left: 50%;
-        transform: translate(-50%, 0%);
-        width: 300px;
-        height: 50px;
-    }
-    #login{
-        position: absolute;
-        top: 350px;
-        left: 50%;
-        transform: translate(-50%, 0%);
-        width: 300px;
-        height: 50px;
-    }
-    #langJa:not(:checked) ~ * *:lang(ja) {
-    display    : none;
-    }
-    #langEn:not(:checked) ~ * *:lang(en) {
-    display    : none;
-    }
-     /* === 各ラジオボタンのラベルをボタンに変更 == */
-    #langChenge label{
-    display    : inline-block;
-    border     : 1px solid #ccc;
-    box-shadow : 2px 2px #999;
-    padding    : 2px 6px;
-    background-color: white;
-    }
-    #langChenge input[type="radio"]{
-        display    : none;
-        position: absolute;
-        left:0%;
-    }
-    #langJa:checked ~ label[for="langJa"] {
-        background :aliceblue;
-    }
-    #langEn:checked ~ label[for="langEn"] {
-        background :aliceblue;
-    }
-    #errmsg{
-        position: absolute;
-        top: 210px;
-        left: 50%;
-        transform: translate(-50%, 0%);
-        width: 300px;
-        height: 50px;
-        color: red;
-    }
-</style>
+<meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>server-bot — Login</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0d1117;color:#e6edf3;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center}
+.card{background:#21262d;border:1px solid #30363d;border-radius:12px;padding:40px;width:90%;max-width:380px}
+.logo{font-size:1.6rem;font-weight:800;color:#58a6ff;margin-bottom:4px}
+.subtitle{font-size:.85rem;color:#8b949e;margin-bottom:32px}
+label{display:block;font-size:.82rem;color:#8b949e;margin-bottom:6px}
+input{width:100%;background:#0d1117;border:1px solid #30363d;border-radius:8px;padding:10px 14px;color:#e6edf3;font-size:.9rem;outline:none;margin-bottom:16px;transition:border-color .15s}
+input:focus{border-color:#58a6ff}
+button{width:100%;background:#238636;border:1px solid #2ea043;border-radius:8px;padding:11px;color:#e6edf3;font-size:.9rem;font-weight:600;cursor:pointer;transition:opacity .15s}
+button:hover{opacity:.85}
+.err{background:#3a1a1a;border:1px solid #f85149;border-radius:8px;padding:10px 14px;color:#f85149;font-size:.82rem;margin-bottom:16px}
+.hint{font-size:.78rem;color:#8b949e;margin-top:16px;text-align:center}
+</style>
+</head>
 <body>
-    <div>
-        <div id="langChenge">
-            <input type="radio" name="land" id="langJa" checked>
-            <input type="radio" name="land" id="langEn">
-            <label for="langJa">
-                <span lang="ja">日本語</span>
-                <span lang="en">Japanese</span>
-            </label>
-            <label for="langEn">
-                <span lang="ja">英語</span>
-                <span lang="en">English</span>
-            </label>
-            <div id="field">
-                
-                <div class="msg">
-                    <p lang="en">Enter your token (use /token in discord)</p>
-                    <p lang="ja">トークンを入力 (Discordで/tokenを実行してください)</p>
-                </div>
-                <form method="POST">
-                    <input type="text" name="token" id="token" placeholder="Token" required>
-                    <button type="submit" id="login">Login</button>
-                </form>
-                <div id="errmsg">
-                {% with messages = get_flashed_messages() %}
-                    {% if messages %}
-                        <ul>
-                            {% for message in messages %}
-                                <li>{{ message }}</li>
-                            {% endfor %}
-                        </ul>
-                    {% endif %}
-                {% endwith %}
-                </div>
-                </div>
-            </div>
-        </div>
-    </body>
+<div class="card">
+  <div class="logo">server-bot</div>
+  <div class="subtitle">Management Panel</div>
+  {% with messages = get_flashed_messages() %}
+  {% if messages %}
+  <div class="err">{% for m in messages %}{{ m }}{% endfor %}</div>
+  {% endif %}
+  {% endwith %}
+  <form method="POST">
+    <label>Access Token</label>
+    <input type="password" name="token" id="token" placeholder="Paste your token here" required autofocus>
+    <button type="submit">Login</button>
+  </form>
+  <p class="hint">Generate a token with <code>/tokengen</code> in Discord.</p>
+</div>
+</body>
 </html>

@@ -55,7 +55,8 @@
           "rmdir": "指定した相対パスのディレクトリを再帰的に削除します。",
           "mv": "指定したパスにあるファイルを別のパスに移動します。",
           "send-discord": "discordにファイルを送信します。",
-          "wget": "urlからファイルをダウンロードします。"
+          "wget": "urlからファイルをダウンロードします。",
+          "unzip": "zipファイルを展開します。"
         }
       },
       "backup": {
@@ -95,7 +96,8 @@
           "rmdir": "Recursively delete the directory specified by the relative path from the server.",
           "mv": "Move the file specified by the path to another path.",
           "send-discord": "Send a file to Discord.",
-          "wget": "Download a file from a URL."
+          "wget": "Download a file from a URL.",
+          "unzip": "Extract a zip file."
         }
       },
       "backup": {
@@ -192,6 +194,12 @@
             "download_failed": "`{}`からファイルをダウンロードできません",
             "download_success": "`{}`からファイルを{}にダウンロードしました",
             "already_exists": "`{}`は既に存在します"
+          },
+          "unzip": {
+            "success": "`{}`を展開しました ({} ファイル)",
+            "not_found": "`{}`は見つかりません",
+            "not_zip": "`{}`はzipファイルではありません",
+            "unsafe_path": "zipファイル内に不正なパスが含まれています: `{}`"
           }
         }
       },
@@ -338,6 +346,12 @@
             "download_failed": "Download failed url:{}",
             "download_success": "Download complete url:{} path:{}",
             "already_exists": "`{}` already exists"
+          },
+          "unzip": {
+            "success": "Extracted `{}` ({} files)",
+            "not_found": "`{}` not found",
+            "not_zip": "`{}` is not a zip file",
+            "unsafe_path": "Zip contains unsafe path: `{}`"
           }
         }
       },
