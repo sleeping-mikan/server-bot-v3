@@ -35,11 +35,15 @@ async def shutdown() -> None:
         await asyncio.gather(*loop_tasks, return_exceptions=True)
 
     try:
-        await client.close()
-    except asyncio.CancelledError:
-        # ws.close() 中にこのタスクがキャンセルされると http.close() が呼ばれないため
-        # 手動で HTTP セッションを閉じて "Unclosed connector" 警告を防ぐ
-        await client.http.close()
+        # /update の同期 HTTP 呼び出しで heartbeat が途切れ再接続中になっている場合、
+        # client.close() が再接続コルーチンの終了を待って無限にハングすることがある。
+        # タイムアウトを設けることで確実に os._exit(0) へ到達させる。
+        await asyncio.wait_for(client.close(), timeout=5.0)
+    except (asyncio.CancelledError, Exception):
+        # ws.close() が完了しない / タイムアウトした場合でも HTTP セッションを閉じる
+        try:
+            await client.http.close()
+        except Exception:
+            pass
 
-    # client.close() 後も client.run() が返らない場合（ネットワーク異常等）に備えた安全弁
     os._exit(0)
