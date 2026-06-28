@@ -68,8 +68,10 @@ def is_running_server(logger: logging.Logger) -> bool:
     """サーバーが起動中なら True を返してエラーログを出す。
 
     停止が前提のコマンド (backup create など) の先頭ガードとして使う。
+    is_stopped() ではなく is_running() を使うことで、プロセス終了済みだが
+    reset() がまだ呼ばれていない競合状態での誤判定を防ぐ。
     """
-    if not ctx.server_process.is_stopped():
+    if ctx.server_process.is_running():
         logger.error("server is still running")
         return True
     return False

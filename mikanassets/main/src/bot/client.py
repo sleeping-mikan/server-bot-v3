@@ -7,6 +7,7 @@ commands/*.py はここから import することで、main.py への循環 impo
 """
 
 import asyncio
+import os
 
 import discord
 from discord import app_commands
@@ -39,4 +40,6 @@ async def shutdown() -> None:
         # ws.close() 中にこのタスクがキャンセルされると http.close() が呼ばれないため
         # 手動で HTTP セッションを閉じて "Unclosed connector" 警告を防ぐ
         await client.http.close()
-        raise
+
+    # client.close() 後も client.run() が返らない場合（ネットワーク異常等）に備えた安全弁
+    os._exit(0)
