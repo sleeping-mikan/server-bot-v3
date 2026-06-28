@@ -79,7 +79,7 @@ class PlainFormatter(logging.Formatter):
 
 
 class ServerConsoleFormatter(logging.Formatter):
-    """Minecraft サーバー stdout 用カラーフォーマッタ。"""
+    """サーバー stdout 用カラーフォーマッタ。"""
 
     def format(self, record: logging.LogRecord) -> str:
         dt    = f"{_DT_COLOR}{_dt(record, self)}{_RESET}"
@@ -93,7 +93,7 @@ class ServerConsoleFormatter(logging.Formatter):
 
 
 class ServerPlainFormatter(logging.Formatter):
-    """Minecraft サーバー stdout 用ファイルフォーマッタ。"""
+    """サーバー stdout 用ファイルフォーマッタ。"""
 
     def format(self, record: logging.LogRecord) -> str:
         return f"{_dt(record, self)} SERVER   {record.getMessage()}"

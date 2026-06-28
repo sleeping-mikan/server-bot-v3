@@ -1,5 +1,5 @@
 """
-mikan minecraft-discord-bridge bot のエントリポイント
+server-bot-v3 のエントリポイント
 
 役割:
     - mikanassets/src にプログラム本体が存在するか確認する

@@ -33,7 +33,7 @@ def load_text_data(lang: str, allow_cmd: str = ""):
     """
     text.json を読み込み、(HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help初期値) を返す。
 
-    allow_cmd: HELP_MSGの "/cmd serverin" の説明文に埋め込む、許可されたMinecraftコマンドの一覧文字列
+    allow_cmd: HELP_MSGの "/cmd serverin" の説明文に埋め込む、許可されたコマンドの一覧文字列
                (元コードでは f-string でその場で埋め込んでいたものを、JSON側では
                "{allow_cmd}" というプレースホルダにしてあるため、ここで.format()する)
     """

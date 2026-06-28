@@ -1,5 +1,5 @@
 """
-server_process.py — Minecraft(等)サーバーの起動中プロセスを管理するクラス
+server_process.py — サーバーの起動中プロセスを管理するクラス
 
 これまでは生の `subprocess.Popen` オブジェクトをあちこちのコードから直接触っていた
 (`process.stdin.write(...)` 、 `process.poll()` 、 `process.kill()` など)。

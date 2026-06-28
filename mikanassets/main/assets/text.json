@@ -45,7 +45,7 @@
       "start": "サーバーを起動します。",
       "exit": "botを終了します。",
       "cmd": {
-        "serverin": "サーバーにマインクラフトコマンドを送信します。",
+        "serverin": "サーバーにコマンドを送信します。",
         "stdin": {
           "main": "サーバーディレクトリ以下に対するコマンドをサーバーの外側から実行します。",
           "mk": "指定した相対パスを渡されたファイルまたは空にします。",
@@ -85,7 +85,7 @@
       "start": "Start the server.",
       "exit": "Exit the bot.",
       "cmd": {
-        "serverin": "Send a Minecraft command to the server.",
+        "serverin": "Send a command to the server.",
         "stdin": {
           "main": "Execute a shell command in the server directory (outside the server process).",
           "mk": "Create or overwrite a file at the given path with the uploaded file, or create an empty file.",
