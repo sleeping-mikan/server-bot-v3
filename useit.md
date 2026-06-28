@@ -179,7 +179,8 @@
             "path": "path/to/backup/"
         },
         "admin": {
-            "members": {}
+            "members": {},
+            "use_discord_admin": true
         },
         "lang": "en"
     },
@@ -212,6 +213,7 @@
 |discord_commands.stop.submit|/stop コマンドが入力された際にサーバーの標準入力へ送信するコマンドを設定します|
 |discord_commands.backup.path|ワールドデータのバックアップパス(例えば `D:\\server\\backup` に保存するなら `D:\\server\\backup\\` または `D:/server/backup/`)|
 |discord_commands.admin.members|サーバー内の管理者権限を操作します。通常 config を直接操作しませんが、`permission change` コマンドを用いて bot 管理者を設定できます。|
+|discord_commands.admin.use_discord_admin|`true` の場合、Discord サーバーの管理者権限を持つユーザーを bot の最高権限レベルとして扱います。`false` にすると Discord 管理者権限を無視し、`members` テーブルのみで権限を判定します。|
 |discord_commands.lang|Discord に送信するメッセージの言語を選択します(en : 英語, ja : 日本語)|
 |enable_advanced_features|Discord 上で管理者権限を持っている場合に、`discord_commands.cmd.stdin.sys_files` に含まれるファイルを操作可能にするか否か|
 
