@@ -36,10 +36,11 @@ def _get_public_ip() -> str | None:
 
 # ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
-def setup(allow_ip: bool, server_port: str | None = None) -> None:
+def setup(allow_ip: bool, ip_address_config: dict) -> None:
     """
-    allow_ip   : config["allow"]["ip"]
-    server_port: Minecraft サーバーのポート番号 (mc-server の場合のみ)
+    allow_ip        : config["allow"]["ip"]
+    ip_address_config: config["discord_commands"]["ip"]["address"]
+                       keys: prefix, suffix, body (null → 実 IP を取得)
     """
     ip_logger = LogManager.cmd.getChild("ip")
 
@@ -55,20 +56,22 @@ def setup(allow_ip: bool, server_port: str | None = None) -> None:
             await interaction.response.send_message(embed=embed)
             ip_logger.error("ip is not allowed")
             return
-        addr = _get_public_ip()
-        if addr is None:
-            ip_logger.error("get ip failed")
-            embed.add_field(name="", value=ctx.text.response_msg["ip"]["get_ip_failed"], inline=False)
-            await interaction.response.send_message(embed=embed)
-            return
-        if server_port:
-            ip_logger.info(f"get ip : {addr}:{server_port}")
-            embed.add_field(
-                name=ctx.text.response_msg["ip"]["msg_startwith"] + f"{addr}:{server_port}",
-                value=f"(ip:{addr} port:{server_port})",
-                inline=False,
-            )
+
+        prefix = ip_address_config.get("prefix", "")
+        suffix = ip_address_config.get("suffix", "")
+        body = ip_address_config.get("body")
+
+        if body is None:
+            raw = _get_public_ip()
+            if raw is None:
+                ip_logger.error("get ip failed")
+                embed.add_field(name="", value=ctx.text.response_msg["ip"]["get_ip_failed"], inline=False)
+                await interaction.response.send_message(embed=embed)
+                return
+            display = f"{prefix}{raw}{suffix}"
         else:
-            ip_logger.info(f"get ip : {addr}")
-            embed.add_field(name="", value=ctx.text.response_msg["ip"]["msg_startwith"] + addr, inline=False)
+            display = f"{prefix}{body}{suffix}"
+
+        ip_logger.info(f"ip : {display}")
+        embed.add_field(name="", value=ctx.text.response_msg["ip"]["msg_startwith"] + display, inline=False)
         await interaction.response.send_message(embed=embed)

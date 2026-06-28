@@ -21,8 +21,7 @@ if platform.system() == "Windows":
 # ── パッケージ存在確認 ────────────────────────────────────────────────────────
 
 try:
-    import requests
-    for _pkg in ("discord", "flask", "ansi2html", "aiohttp", "fastapi", "uvicorn", "zipstream", "waitress"):
+    for _pkg in ("requests", "discord", "flask", "ansi2html", "aiohttp", "fastapi", "uvicorn", "zipstream", "waitress"):
         importlib.import_module(_pkg)
     del _pkg
 except ImportError:
@@ -147,47 +146,11 @@ if not os.path.exists(ctx.temp_path):
 if config.get("update", {}).get("auto"):
     asyncio.run(update_self_if_commit_changed())
 
-# ── Minecraft server.properties ───────────────────────────────────────────────
-
-properties: dict = {}
-if config.get("process_type") == "mc-server":
-    props_path = server_path + "server.properties"
-    try:
-        with open(props_path) as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith("#"):
-                    if line.startswith((" ", "\t")):
-                        line = line[1:]
-                    key, value = line.split("=", 1)
-                    properties[key] = value
-        LogManager.sys.info("read properties file -> " + props_path)
-    except Exception as e:
-        LogManager.sys.error(e)
-
 # ── テキストデータ ────────────────────────────────────────────────────────────
 
-from bot.text_data import load_text_data
+from bot.setup import load_text, setup_commands
 
-async def _load_text() -> None:
-    (
-        ctx.text.help_msg,
-        ctx.text.command_desc,
-        ctx.text.response_msg,
-        ctx.text.activity_name,
-        send_help_initial,
-    ) = load_text_data(ctx.text.lang, ctx.allow_cmd)
-    send_help_initial += (
-        f"web : http://{requests.get('https://api.ipify.org').text}:{ctx.web_port}\n"
-    )
-    from bot.embeds import ModifiedEmbeds
-    embed = ModifiedEmbeds.DefaultEmbed(title="How to use this bot")
-    for key in ctx.text.help_msg[ctx.text.lang]:
-        embed.add_field(name=key, value=ctx.text.help_msg[ctx.text.lang][key], inline=False)
-    embed.add_field(name="detail", value=send_help_initial, inline=False)
-    ctx.text.send_help = embed
-
-asyncio.run(_load_text())
+asyncio.run(load_text())
 LogManager.sys.info("text data loaded")
 
 # ── server stdout リーダーを ctx に格納 ───────────────────────────────────────
@@ -202,40 +165,9 @@ LogManager.sys.info("server instance root -> " + server_path)
 if config_changed:
     LogManager.sys.info("added config because necessary elements were missing")
 
-# ── イベントハンドラ登録 (import だけで登録される) ────────────────────────────
+# ── コマンド登録・イベント登録・拡張機能ロード ───────────────────────────────
 
-importlib.import_module("bot.events")  # デコレータ実行によるイベント登録が目的
-
-# ── コマンド登録 ──────────────────────────────────────────────────────────────
-
-from bot.commands import (
-    misc, status as status_cmd, server as server_cmd,
-    permission as permission_cmd, terminal as terminal_cmd,
-    tokengen as tokengen_cmd, ip as ip_cmd, logs as logs_cmd,
-    cmd as cmd_cmd, backup as backup_cmd, announce as announce_cmd,
-    update as update_cmd,
-)
-
-misc.setup()
-status_cmd.setup(server_name=ctx.server_name, web_port=ctx.web_port)
-server_cmd.setup(server_logger=ctx.server_logger)
-permission_cmd.setup(get_text_dat=_load_text)
-terminal_cmd.setup()
-tokengen_cmd.setup()
-ip_cmd.setup(
-    allow_ip=config["allow"]["ip"],
-    server_port=properties.get("server-port") if config.get("process_type") == "mc-server" else None,
-)
-logs_cmd.setup(server_path=server_path, log_msg=LogManager.log_msg)
-cmd_cmd.setup()
-backup_cmd.setup()
-announce_cmd.setup()
-update_cmd.setup()
-
-# ── 拡張機能ロード ────────────────────────────────────────────────────────────
-
-from bot.extensions import load as load_extensions
-load_extensions()
+setup_commands(config, server_path, LogManager.log_msg)
 
 # ── Web サーバー起動 ──────────────────────────────────────────────────────────
 

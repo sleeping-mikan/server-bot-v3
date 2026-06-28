@@ -51,10 +51,13 @@ def delete_config(config_dict):
     if "auto_update" in config_dict:
         del config_dict["auto_update"]
         changed = True
-    # v2.4.12まで存在した -> 現在は他のprocessに対応するため形式を変更
+    # v2.4.12まで存在した (現在は削除)
     if "mc" in config_dict:
-        config_dict["process_type"] = "mc-server"
         del config_dict["mc"]
+        changed = True
+    # process_type は廃止
+    if "process_type" in config_dict:
+        del config_dict["process_type"]
         changed = True
     return changed
 
@@ -76,10 +79,12 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict):
             "server_args": "",
             "server_char_encoding": "utf-8",
             "log": {"server": True, "all": False},
-            "process_type": "mc-server",
             "web": {"secret_key": "YOURSECRETKEY", "port": 80, "use_front_page": True},
             "discord_commands": {
                 "permission": {"commands_level": INITIAL_COMMAND_PERMISSION},
+                "ip": {
+                    "address": {"prefix": "", "suffix": "", "body": None},
+                },
                 "cmd": {
                     "stdin": {
                         "sys_files": [".config", ".token", "logs", "mikanassets"],
@@ -138,6 +143,17 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict):
             for key in INITIAL_COMMAND_PERMISSION.keys():
                 if key not in cfg["discord_commands"]["permission"]["commands_level"]:
                     cfg["discord_commands"]["permission"]["commands_level"][key] = INITIAL_COMMAND_PERMISSION[key]
+            if "ip" not in cfg["discord_commands"]:
+                cfg["discord_commands"]["ip"] = {}
+            if "address" not in cfg["discord_commands"]["ip"]:
+                cfg["discord_commands"]["ip"]["address"] = {}
+            addr = cfg["discord_commands"]["ip"]["address"]
+            if "prefix" not in addr:
+                addr["prefix"] = ""
+            if "suffix" not in addr:
+                addr["suffix"] = ""
+            if "body" not in addr:
+                addr["body"] = None
             if "cmd" not in cfg["discord_commands"]:
                 cfg["discord_commands"]["cmd"] = {}
             if "stdin" not in cfg["discord_commands"]["cmd"]:
@@ -168,8 +184,6 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict):
                 cfg["discord_commands"]["admin"]["members"] = {}
             if "lang" not in cfg["discord_commands"]:
                 cfg["discord_commands"]["lang"] = "en"
-            if "process_type" not in cfg:
-                cfg["process_type"] = "mc-server"
             if "server_name" not in cfg:
                 cfg["server_name"] = "bedrock_server.exe"
             if "log" not in cfg:
