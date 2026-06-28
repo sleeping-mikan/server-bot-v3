@@ -120,7 +120,10 @@ if not ctx.paths.token_file.exists():
     ctx.paths.token_file.write_text("ここにtokenを入力", encoding="utf-8")
     LogManager.sys.error(f"please write token in {ctx.paths.token_file}")
     wait_for_keypress()
-ctx.token = ctx.paths.token_file.read_text(encoding="utf-8")
+ctx.token = ctx.paths.token_file.read_text(encoding="utf-8").strip()
+if not ctx.token or ctx.token == "ここにtokenを入力":
+    LogManager.sys.error(f"token が未設定です。{ctx.paths.token_file} に Discord bot のトークンを記入してください。")
+    wait_for_keypress()
 
 temp_base = Path(os.environ.get("TEMP", "/tmp")) if platform.system() == "Windows" else Path("/tmp")
 ctx.temp_path = temp_base / "mcserver"
@@ -173,4 +176,9 @@ web_thread.start()
 # ── Discord Bot 起動 ──────────────────────────────────────────────────────────
 
 from bot.client import client
-client.run(ctx.token, log_formatter=LogManager.console_formatter)
+import discord as _discord
+try:
+    client.run(ctx.token, log_formatter=LogManager.console_formatter)
+except _discord.errors.LoginFailure:
+    LogManager.sys.error(f"トークンが無効です。{ctx.paths.token_file} の内容を確認してください。")
+    wait_for_keypress()
