@@ -35,3 +35,15 @@ def stop_server():
     if result == StopResult.ALREADY_STOPPED:
         return jsonify({"ok": False, "message": "Server is already stopped"})
     return jsonify({"ok": True, "message": "Stop command sent"})
+
+
+@bp.route("/api/exit", methods=["POST"])
+def exit_bot():
+    if not is_valid_session():
+        return unauth()
+    if ctx.server_process.is_running():
+        return jsonify({"ok": False, "message": ctx.text.response_msg["other"]["is_running"]})
+    import asyncio
+    from bot.client import client, shutdown
+    asyncio.run_coroutine_threadsafe(shutdown(), client.loop)
+    return jsonify({"ok": True, "message": "Bot is shutting down…"})

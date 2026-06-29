@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>server-bot</title>
+<link rel="icon" id="favicon" type="image/png" href="">
 <style>
 :root {
   --bg: #0d1117;
@@ -26,6 +27,8 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .sidebar-header{padding:16px;border-bottom:1px solid var(--border)}
 .sidebar-title{font-size:1.1rem;font-weight:700;color:var(--text)}
 .sidebar-sub{font-size:.75rem;color:var(--muted)}
+.sidebar-logo{width:28px;height:28px;border-radius:50%;object-fit:cover;margin-left:auto;flex-shrink:0;display:none}
+.sidebar-title-row{display:flex;align-items:center;gap:8px}
 nav{flex:1;padding:8px 0;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:6px;margin:2px 8px;font-size:.9rem;color:var(--muted);transition:background .15s,color .15s;user-select:none}
 .nav-item:hover{background:var(--card);color:var(--text)}
@@ -153,7 +156,10 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
 
 <aside class="sidebar" id="sidebar">
   <div class="sidebar-header">
-    <div class="sidebar-title">server-bot</div>
+    <div class="sidebar-title-row">
+      <div class="sidebar-title">server-bot</div>
+      <img id="sidebar-logo" class="sidebar-logo" src="" alt="">
+    </div>
     <div class="sidebar-sub">Management Panel</div>
   </div>
   <nav>
@@ -171,6 +177,7 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <span class="topbar-title">server-bot</span>
+    <img id="topbar-logo" src="" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-left:4px;display:none">
   </div>
 
   <!-- ── Dashboard ── -->
@@ -306,7 +313,10 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
       <div class="status-row" style="margin-bottom:6px"><div class="dot" id="stat-srv-dot"></div><span id="stat-srv-txt">Server: —</span></div>
       <div class="status-row"><div class="dot green"></div><span>Bot: Online</span></div>
     </div>
-    <button class="btn btn-sm" onclick="loadStatus()">↺ Refresh</button>
+    <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+      <button class="btn btn-sm" onclick="loadStatus()">↺ Refresh</button>
+      <button class="btn btn-sm btn-red" onclick="confirmExit()">⏻ Exit Bot</button>
+    </div>
   </section>
 </div>
 
@@ -816,6 +826,29 @@ function showConfirm(msg, onOk) {
 
 function closeModal() { document.getElementById('modal').style.display = 'none'; }
 function closeModalIfOverlay(e) { if (e.target === document.getElementById('modal')) closeModal(); }
+
+// ══════════════════════════════════════════════════════════
+// Exit
+// ══════════════════════════════════════════════════════════
+function confirmExit() {
+  showModal('Exit Bot', `<p style="font-size:.9rem;color:var(--muted)">Shut down the bot process.<br>Only available while the server is stopped. Continue?</p>`, async () => {
+    const d = await api('POST', '/api/exit');
+    if (d) toast(d.message, d.ok ? 'success' : 'error');
+  }, { okLabel: 'Exit', okClass: 'btn btn-red' });
+}
+
+// ══════════════════════════════════════════════════════════
+// Bot logo
+// ══════════════════════════════════════════════════════════
+(function applyBotLogo() {
+  const url = 'https://www.dropbox.com/scl/fi/a21ptajqddfkhilx1e4st/mi-2025.png?rlkey=29x0wvk1np17a3nvddth0jnyk&st=s6r4f2kr&dl=1';
+  document.getElementById('sidebar-logo').src = url;
+  document.getElementById('sidebar-logo').style.display = 'block';
+  document.getElementById('topbar-logo').src = url;
+  document.getElementById('topbar-logo').style.display = 'block';
+  const fav = document.getElementById('favicon');
+  if (fav) fav.href = url;
+})();
 
 // ══════════════════════════════════════════════════════════
 // Boot
