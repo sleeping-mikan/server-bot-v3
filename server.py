@@ -154,7 +154,8 @@ def run_main() -> int:
     # mikanassets/src ではなく、このserver.pyのあるディレクトリを基準にしたいため、
     # 環境変数で基準ディレクトリを明示的に伝える。
     env = os.environ.copy()
-    env["MIKAN_BASE_DIR"] = THIS_DIR
+    env["MIKAN_BASE_DIR"]   = THIS_DIR
+    env["MIKAN_ENTRY_FILE"] = os.path.basename(os.path.abspath(__file__))
 
     # cwdもTHIS_DIR(server.py基準)にしておく(相対パス指定の挙動を揃えるため)
     proc = subprocess.run(args, cwd=THIS_DIR, env=env)

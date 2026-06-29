@@ -167,12 +167,13 @@ async def update_self_if_commit_changed(
 
     env = os.environ.copy()
     env["MIKAN_BOT_TOKEN"] = ctx.token
+    entry_file = os.environ.get("MIKAN_ENTRY_FILE", "server.py")
     os.execve(sys.executable, [
         sys.executable,
         update_apply_path,
         new_repo_root,
         now_path,
-        "server.py",
+        entry_file,
         msg_id,
         channel_id,
     ], env)
