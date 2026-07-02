@@ -146,6 +146,7 @@
           "not_file": "`{}`はファイルではありません",
           "not_file_or_directory": "`{}`はファイルまたはディレクトリではありません",
           "permission_denied": "`{}`を操作する権限がありません",
+          "entry_file_locked": "`{}`はエントリファイルです。enable_advanced_featuresが有効な場合のみ操作できます",
           "file_size_limit": "サイズ`{}`は制限`{}`を超えている可能性があるためFile.ioにアップロードします\nアップロード後に再度メンションで通知します",
           "file_size_limit_web": "サイズ`{}`は制限`{}`を超えているのでアップロードできません",
           "mk": {
@@ -300,6 +301,7 @@
           "not_file": "`{}` is not a file",
           "not_file_or_directory": "`{}` is not a file or directory",
           "permission_denied": "`{}` cannot be modified because it is an important file",
+          "entry_file_locked": "`{}` is the entry file and can only be modified when enable_advanced_features is enabled",
           "file_size_limit": "Upload to File.io because the file size of `{}` is over the limit of {} bytes\nmention to you if ended",
           "file_size_limit_web": "Cannot upload to File.io because the file size of `{}` is over the limit of {} bytes",
           "mk": {

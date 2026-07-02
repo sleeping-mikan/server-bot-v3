@@ -16,7 +16,7 @@ import discord
 from discord.ext import tasks
 
 from bot.client import client, tree
-from bot.utils import is_administrator, is_force_administrator
+from bot.utils import user_permission
 from core.log_setup import LogManager
 from core.state import ctx
 
@@ -92,7 +92,7 @@ async def on_message(message: discord.Message) -> None:
             return
         if message.channel.id != ctx.terminal.channel_id:
             return
-        if not await is_administrator(message.author) and not await is_force_administrator(message.author):
+        if await user_permission(message.author) < ctx.text.command_permission["cmd serverin"]:
             await message.reply("permission denied")
             return
         if not ctx.server_process.is_running():

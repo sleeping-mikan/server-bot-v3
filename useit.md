@@ -159,12 +159,8 @@
                 }
             },
             "serverin": {
-                "allow_mccmd": [
-                    "list",
-                    "whitelist",
-                    "tellraw",
-                    "w",
-                    "tell"
+                "allow_cmd": [
+                    "stop"
                 ]
             }
         },
@@ -207,15 +203,15 @@
 |discord_commands.ip.address.body|null の場合は外部 IP を自動取得して表示する。文字列を設定するとその値を固定で表示する(自動取得しない)|
 |discord_commands.cmd.stdin.sys_files|/cmd stdin \<mv/rmdir/rm/wget/mv\> において、権限を持っていても操作を拒否するファイルのリスト|
 |discord_commands.cmd.stdin.send_discord.bits_capacity|/cmd stdin send-discord において、送信を許可するファイルの最大容量|
-|discord_commands.cmd.serverin.allow_mccmd|/cmd で標準入力を許可するコマンド名のリスト|
-|discord_commands.terminal.discord|コンソールとして扱うチャンネル id を指定します。通常 config を直接操作しませんが、指定されたチャンネルではサーバー起動中の入出力が可能になります(ただし allow_mccmd で許可された命令のみ)|
+|discord_commands.cmd.serverin.allow_cmd|/cmd で標準入力を許可するコマンド名のリスト|
+|discord_commands.terminal.discord|コンソールとして扱うチャンネル id を指定します。通常 config を直接操作しませんが、指定されたチャンネルではサーバー起動中の入出力が可能になります(ただし allow_cmd で許可された命令のみ)|
 |discord_commands.terminal.capacity|Discord にコンソール出力する予定の文字列長の最大を設定します。デフォルトでは送信に時間がかかったとしてもデータを捨てません。|
 |discord_commands.stop.submit|/stop コマンドが入力された際にサーバーの標準入力へ送信するコマンドを設定します|
 |discord_commands.backup.path|ワールドデータのバックアップパス(例えば `D:\\server\\backup` に保存するなら `D:\\server\\backup\\` または `D:/server/backup/`)|
 |discord_commands.admin.members|サーバー内の管理者権限を操作します。通常 config を直接操作しませんが、`permission change` コマンドを用いて bot 管理者を設定できます。|
 |discord_commands.admin.use_discord_admin|`true` の場合、Discord サーバーの管理者権限を持つユーザーを bot の最高権限レベルとして扱います。`false` にすると Discord 管理者権限を無視し、`members` テーブルのみで権限を判定します。|
 |discord_commands.lang|Discord に送信するメッセージの言語を選択します(en : 英語, ja : 日本語)|
-|enable_advanced_features|Discord 上で管理者権限を持っている場合に、`discord_commands.cmd.stdin.sys_files` に含まれるファイルを操作可能にするか否か|
+|enable_advanced_features|Discord 上で管理者権限を持っている場合に、`discord_commands.cmd.stdin.sys_files` に含まれるファイルを操作可能にするか否か。また、これが `false` の場合はエントリファイル(通常 `server.py`。名前変更されていても検出されます)に対する `/cmd stdin <mk/rm/mv/wget>` 操作が権限に関わらず常に拒否されます|
 
 ---
 

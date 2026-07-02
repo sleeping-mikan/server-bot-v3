@@ -31,11 +31,10 @@ from bot.client import tree
 from web.download_server import SendDiscordSelfServer
 from bot.embeds import ModifiedEmbeds
 from core.log_setup import LogManager
-from core.path_utils import is_important_bot_file, is_path_within_scope
+from core.path_utils import is_entry_file, is_important_bot_file, is_path_within_scope
 from core.state import ctx
 from core.zip_utils import safe_unzip
 from bot.utils import (
-    is_administrator,
     is_running_server,
     is_stopped_server,
     not_enough_permission,
@@ -198,7 +197,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["mk"]["is_directory"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if (not await is_administrator(interaction.user) or not ctx.enable_advanced_features) and await is_important_bot_file(path):
+        if is_entry_file(path) and not ctx.enable_advanced_features:
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        if not ctx.enable_advanced_features and await is_important_bot_file(path):
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -235,7 +238,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["not_file"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if (not await is_administrator(interaction.user) or not ctx.enable_advanced_features) and await is_important_bot_file(path):
+        if is_entry_file(path) and not ctx.enable_advanced_features:
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        if not ctx.enable_advanced_features and await is_important_bot_file(path):
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -289,7 +296,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rmdir"]["not_exists"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if await is_important_bot_file(path) and (not ctx.enable_advanced_features or not await is_administrator(interaction.user)):
+        if await is_important_bot_file(path) and not ctx.enable_advanced_features:
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
@@ -329,7 +336,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["not_directory"].format(abs_dest), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if (not await is_administrator(interaction.user) or not ctx.enable_advanced_features) and \
+        if (is_entry_file(abs_path) or is_entry_file(abs_dest)) and not ctx.enable_advanced_features:
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(abs_path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        if not ctx.enable_advanced_features and \
                 (await is_important_bot_file(abs_path) or await is_important_bot_file(abs_dest)):
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(abs_path), inline=False)
             await interaction.response.send_message(embed=embed)
@@ -382,7 +393,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(save_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if (not await is_administrator(interaction.user) or not ctx.enable_advanced_features) and await is_important_bot_file(save_path):
+        if is_entry_file(save_path) and not ctx.enable_advanced_features:
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(save_path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
+        if not ctx.enable_advanced_features and await is_important_bot_file(save_path):
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(save_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return

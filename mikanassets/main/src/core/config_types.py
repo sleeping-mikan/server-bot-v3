@@ -56,7 +56,7 @@ class StdinConfig(TypedDict):
 
 
 class ServeInConfig(TypedDict):
-    allow_mccmd: list[str]
+    allow_cmd: list[str]
 
 
 class CmdConfig(TypedDict):

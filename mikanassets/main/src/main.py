@@ -79,7 +79,7 @@ try:
     ctx.STOP                   = config["discord_commands"]["stop"]["submit"]
     ctx.backup_path            = Path(config["discord_commands"]["backup"]["path"])
     ctx.web_port               = config["web"]["port"]
-    ctx.allow_cmd              = set(config["discord_commands"]["cmd"]["serverin"]["allow_mccmd"])
+    ctx.allow_cmd              = set(config["discord_commands"]["cmd"]["serverin"]["allow_cmd"])
     ctx.enable_advanced_features = config["enable_advanced_features"]
     ctx.terminal.channel_id    = config["discord_commands"]["terminal"]["discord"]
     ctx.terminal_capacity      = (

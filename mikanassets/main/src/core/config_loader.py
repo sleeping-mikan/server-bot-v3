@@ -109,8 +109,8 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
         cfg["discord_commands"]["cmd"]["stdin"]["send_discord"]["bits_capacity"] = 2 * 1024 * 1024 * 1024
     if "serverin" not in cfg["discord_commands"]["cmd"]:
         cfg["discord_commands"]["cmd"]["serverin"] = {}
-    if "allow_mccmd" not in cfg["discord_commands"]["cmd"]["serverin"]:
-        cfg["discord_commands"]["cmd"]["serverin"]["allow_mccmd"] = ["list", "whitelist", "tellraw", "w", "tell"]
+    if "allow_cmd" not in cfg["discord_commands"]["cmd"]["serverin"]:
+        cfg["discord_commands"]["cmd"]["serverin"]["allow_cmd"] = ["stop"]
     if "terminal" not in cfg["discord_commands"]:
         cfg["discord_commands"]["terminal"] = {"discord": False, "capacity": "inf"}
     if "discord" not in cfg["discord_commands"]["terminal"]:
@@ -196,7 +196,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
                         "sys_files": [".config", ".token", "logs", "mikanassets"],
                         "send_discord": {"bits_capacity": 2 * 1024 * 1024 * 1024},
                     },
-                    "serverin": {"allow_mccmd": ["list", "whitelist", "tellraw", "w", "tell"]},
+                    "serverin": {"allow_cmd": ["stop"]},
                 },
                 "terminal": {"discord": False, "capacity": "inf"},
                 "stop": {"submit": "stop"},

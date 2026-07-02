@@ -11,9 +11,22 @@ bot/utils.py に置いていた is_path_within_scope / is_important_bot_file を
 
 from __future__ import annotations
 
+import os
 import pathlib
 
 from core.state import ctx
+
+
+def is_entry_file(path: str | pathlib.Path) -> bool:
+    """path がエントリファイル (通常 server.py、リネーム可能) と一致するかを確認する。
+
+    server.py が run_main() で設定する MIKAN_ENTRY_FILE 環境変数からファイル名を取得する。
+    未設定 (main.py 単体起動など) の場合は "server.py" を既定値とする。
+    """
+    resolved   = pathlib.Path(path).resolve()
+    entry_name = os.environ.get("MIKAN_ENTRY_FILE", "server.py")
+    entry_path = (ctx.paths.base / entry_name).resolve()
+    return resolved == entry_path
 
 
 def is_path_within_scope(path: str | pathlib.Path) -> bool:
