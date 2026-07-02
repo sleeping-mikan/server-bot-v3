@@ -82,6 +82,8 @@ def submit_data():
     if user_input == ctx.STOP:
         from server.control import stop_server
         stop_server()
+    elif user_input.split(" ")[0] not in ctx.allow_cmd:
+        return jsonify({"ok": False, "message": "this command is not allowed"})
     else:
         ctx.server_process.write(user_input)
     return jsonify({"ok": True})

@@ -482,22 +482,23 @@ async function quickBackup() {
 function initConsole() {
   fetchConsole();
   S.consoleTimer = setInterval(fetchConsole, 5000);
-  const inp = document.getElementById('console-input');
-  inp.addEventListener('keydown', e => {
-    if (e.key === 'Enter') { sendConsoleCmd(); return; }
-    if (e.key === 'ArrowUp') {
-      if (S.cmdIdx < S.cmdHistory.length - 1) {
-        S.cmdIdx++; inp.value = S.cmdHistory[S.cmdHistory.length - 1 - S.cmdIdx];
-      }
-      e.preventDefault();
-    }
-    if (e.key === 'ArrowDown') {
-      if (S.cmdIdx > 0) { S.cmdIdx--; inp.value = S.cmdHistory[S.cmdHistory.length - 1 - S.cmdIdx]; }
-      else { S.cmdIdx = -1; inp.value = ''; }
-      e.preventDefault();
-    }
-  });
 }
+
+document.getElementById('console-input').addEventListener('keydown', e => {
+  const inp = e.currentTarget;
+  if (e.key === 'Enter') { sendConsoleCmd(); return; }
+  if (e.key === 'ArrowUp') {
+    if (S.cmdIdx < S.cmdHistory.length - 1) {
+      S.cmdIdx++; inp.value = S.cmdHistory[S.cmdHistory.length - 1 - S.cmdIdx];
+    }
+    e.preventDefault();
+  }
+  if (e.key === 'ArrowDown') {
+    if (S.cmdIdx > 0) { S.cmdIdx--; inp.value = S.cmdHistory[S.cmdHistory.length - 1 - S.cmdIdx]; }
+    else { S.cmdIdx = -1; inp.value = ''; }
+    e.preventDefault();
+  }
+});
 
 let lastConsoleScroll = true;
 async function fetchConsole() {
