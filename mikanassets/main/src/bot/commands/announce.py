@@ -52,6 +52,7 @@ def setup() -> None:
             await not_enough_permission(interaction, announce_logger)
             return
         if file is not None and txt:
+            announce_logger.error("both file and txt specified")
             return_embed.add_field(
                 name="",
                 value=ctx.text.response_msg["cmd"]["announce"]["embed"]["exist_file_and_txt"],
@@ -62,7 +63,8 @@ def setup() -> None:
         if file is not None:
             try:
                 txt = (await file.read()).decode("utf-8")
-            except Exception:
+            except Exception as e:
+                announce_logger.error(f"decode error : {file.filename} ({e})")
                 return_embed.add_field(
                     name="",
                     value=ctx.text.response_msg["announce"]["embed"]["decode_error"],
@@ -78,6 +80,7 @@ def setup() -> None:
                 inline=False,
             )
         if not txt:
+            announce_logger.error("empty message")
             return_embed.add_field(
                 name="",
                 value=ctx.text.response_msg["announce"]["embed"]["empty"],

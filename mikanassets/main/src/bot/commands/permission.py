@@ -92,6 +92,8 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
         if result in (PermChangeResult.ADDED, PermChangeResult.UPDATED, PermChangeResult.REMOVED):
             await rewrite_config()
             admin_logger.info(f"permission change {result.name} -> {user}")
+        else:
+            admin_logger.error(f"permission change {result.name} -> {user} (level {level})")
 
     @command_group_permission.command(
         name="view",

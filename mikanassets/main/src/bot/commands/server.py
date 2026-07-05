@@ -32,9 +32,11 @@ def setup(server_logger: object) -> None:
         result = start_server(server_logger)
         embed  = ModifiedEmbeds.DefaultEmbed(title="/start")
         if result == StartResult.ALREADY_RUNNING:
+            _start.error("server is already running")
             embed.add_field(name="", value=ctx.text.response_msg["other"]["is_running"], inline=False)
             await interaction.followup.send(embed=embed)
             return
+        _start.info("server start")
         embed.add_field(name="", value=ctx.text.response_msg["start"]["success"], inline=False)
         await interaction.followup.send(embed=embed)
         await client.change_presence(
@@ -51,9 +53,11 @@ def setup(server_logger: object) -> None:
         result = stop_server()
         embed  = ModifiedEmbeds.DefaultEmbed(title="/stop")
         if result == StopResult.ALREADY_STOPPED:
+            _stop.error("server is not running")
             embed.add_field(name="", value=ctx.text.response_msg["other"]["is_not_running"], inline=False)
             await interaction.followup.send(embed=embed)
             return
+        _stop.info("server stop")
         embed.add_field(name="", value=ctx.text.response_msg["stop"]["success"], inline=False)
         await interaction.followup.send(embed=embed)
         await client.change_presence(activity=discord.Game(ctx.text.activity_name["ending"]))
