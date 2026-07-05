@@ -65,8 +65,10 @@ def backups_apply():
     # apply_backup_sync はマージコピー (backup_path/backup_name にあるエントリだけを
     # 上書き/追加、dest を丸ごと消さない) なので、dest がrootかどうかではなく
     # バックアップの中身が実際に .config / .token / mikanassets 等と衝突するかで判定する。
-    if not ctx.enable_advanced_features and backup_would_overwrite_important_files(backup_path, dest):
-        return jsonify({"error": "invalid destination path"}), 400
+    if not ctx.enable_advanced_features:
+        collision = backup_would_overwrite_important_files(backup_path, dest)
+        if collision is not None:
+            return jsonify({"error": f"would overwrite protected file: {collision}"}), 400
     apply_backup_sync(backup_name, str(dest))
     _logger.info(f"applied backup: {backup_name} -> {dest}")
     return jsonify({"ok": True, "message": f"Applied '{backup_name}' to '{dest_rel}'"})

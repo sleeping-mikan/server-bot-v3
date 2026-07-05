@@ -213,7 +213,8 @@
         },
         "apply": {
           "path_not_found": "指定されたパスが見つかりません",
-          "path_not_allowed": "許可されないパス"
+          "path_not_allowed": "許可されないパス",
+          "protected_path": "保護されたファイル ({}) と衝突するため、この場所には適用できません"
         }
       },
       "ip": {
@@ -366,7 +367,8 @@
         },
         "apply": {
           "path_not_found": "Path is not exists",
-          "path_not_allowed": "Path not allowed"
+          "path_not_allowed": "Path not allowed",
+          "protected_path": "Cannot apply here — it collides with the protected file ({})"
         }
       },
       "ip": {

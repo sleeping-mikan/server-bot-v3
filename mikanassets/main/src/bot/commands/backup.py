@@ -84,7 +84,9 @@ def setup() -> None:
             embed.add_field(name="", value=ctx.text.response_msg["other"]["is_running"], inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not is_path_within_scope(from_path) or is_important_bot_file(from_path):
+        if not is_path_within_scope(from_path) or (
+            not ctx.enable_advanced_features and is_important_bot_file(from_path)
+        ):
             _create.error(f"path not allowed : {from_path}")
             embed.add_field(
                 name="",
@@ -139,13 +141,23 @@ def setup() -> None:
             await interaction.response.send_message(embed=embed)
             return
         dest_path = str(ctx.server_path / path) if path else str(ctx.server_path)
-        # dest がrootかどうかではなく、src (バックアップの中身) が実際に
-        # 保護パスと衝突するかで判定する (適用はマージコピーで、dest を丸ごと消さないため)
-        if not is_path_within_scope(dest_path) or backup_would_overwrite_important_files(src, dest_path):
+        if not is_path_within_scope(dest_path):
             _apply.error(f"path not allowed : {dest_path}")
             embed.add_field(
                 name="",
                 value=ctx.text.response_msg["backup"]["apply"]["path_not_allowed"] + f"\n`{dest_path}`",
+                inline=False,
+            )
+            await interaction.response.send_message(embed=embed)
+            return
+        # dest がrootかどうかではなく、src (バックアップの中身) が実際に
+        # 保護パスと衝突するかで判定する (適用はマージコピーで、dest を丸ごと消さないため)
+        collision = None if ctx.enable_advanced_features else backup_would_overwrite_important_files(src, dest_path)
+        if collision is not None:
+            _apply.error(f"would overwrite protected file : {collision} (dest {dest_path})")
+            embed.add_field(
+                name="",
+                value=ctx.text.response_msg["backup"]["apply"]["protected_path"].format(collision) + f"\n`{dest_path}`",
                 inline=False,
             )
             await interaction.response.send_message(embed=embed)

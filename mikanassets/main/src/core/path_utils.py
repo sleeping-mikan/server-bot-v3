@@ -70,7 +70,7 @@ def is_important_bot_file(path: str | pathlib.Path) -> bool:
 
 def backup_would_overwrite_important_files(
     src_dir: str | pathlib.Path, dest_dir: str | pathlib.Path
-) -> bool:
+) -> pathlib.Path | None:
     """src_dir (バックアップの中身) を dest_dir にマージコピー (同名エントリのみ上書き)
     した場合に、sys_files のいずれかを上書きしてしまうかを確認する。
 
@@ -82,6 +82,10 @@ def backup_would_overwrite_important_files(
     「その保護パスが dest_dir の下に来る位置にあり、かつ src_dir 側に対応する
     相対パスが実際に存在するか」を直接確認する方が軽く、多段パスの sys_files
     (例: "data/foo") に対しても取りこぼし・誤検知がない。
+
+    衝突する保護パスが見つかった場合は dest_dir から見た相対パスを返す
+    (呼び出し側でエラーメッセージに含めて「何が原因で拒否されたか」を示すため)。
+    見つからなければ None を返す。
     """
     src_dir   = pathlib.Path(src_dir)
     dest_dir  = pathlib.Path(dest_dir).resolve(strict=False)
@@ -94,5 +98,5 @@ def backup_would_overwrite_important_files(
         except ValueError:
             continue  # dest_dir はこの保護パスの祖先ではない (衝突しようがない)
         if (src_dir / rel).exists():
-            return True
-    return False
+            return rel
+    return None
