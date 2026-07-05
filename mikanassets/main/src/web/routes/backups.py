@@ -11,8 +11,9 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
+from core.path_utils import is_important_bot_file, would_destroy_important_files
 from core.state import ctx
-from web.auth import is_valid_session, unauth
+from web.auth import require_permission
 
 bp = Blueprint("backups", __name__)
 _logger = logging.getLogger("web.backups")
@@ -20,8 +21,9 @@ _logger = logging.getLogger("web.backups")
 
 @bp.route("/flask_backup_server", methods=["POST"])
 def backup_server():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("backup create")
+    if err:
+        return err
     from server.backup import create_backup_sync
     data = request.get_json(silent=True, force=True) or {}
     world_name = data.get("fileName") or request.form.get("fileName", "world")
@@ -40,8 +42,9 @@ def backup_server():
 
 @bp.route("/api/backups/apply", methods=["POST"])
 def backups_apply():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("backup apply")
+    if err:
+        return err
     from server.backup import apply_backup_sync
     from web.utils import resolve_server_path
     data = request.get_json(silent=True) or {}
@@ -59,6 +62,14 @@ def backups_apply():
     dest = resolve_server_path(dest_rel)
     if dest is None:
         return jsonify({"error": "invalid destination path"}), 400
+    # apply_backup_sync は dest を rmtree してから展開するため、dest 自体が保護対象
+    # (.config / .token / mikanassets 等) を内包している場合は丸ごと消えてしまう。
+    # is_important_bot_file だけでは dest == server_path のようなケース (保護対象の
+    # 親ディレクトリ) を検出できないため would_destroy_important_files も併用する。
+    if not ctx.enable_advanced_features and (
+        is_important_bot_file(dest) or would_destroy_important_files(dest)
+    ):
+        return jsonify({"error": "invalid destination path"}), 400
     apply_backup_sync(backup_name, str(dest))
     _logger.info(f"applied backup: {backup_name} -> {dest}")
     return jsonify({"ok": True, "message": f"Applied '{backup_name}' to '{dest_rel}'"})
@@ -66,8 +77,10 @@ def backups_apply():
 
 @bp.route("/api/backups/list")
 def backups_list():
-    if not is_valid_session():
-        return unauth()
+    # 一覧表示のみなので、破壊的な apply より緩い create と同じ権限にする
+    err = require_permission("backup create")
+    if err:
+        return err
     bp_path = ctx.backup_path
     if not bp_path.is_dir():
         return jsonify({"backups": []})

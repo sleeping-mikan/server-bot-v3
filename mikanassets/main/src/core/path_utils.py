@@ -44,7 +44,7 @@ def is_path_within_scope(path: str | pathlib.Path) -> bool:
         return False
 
 
-async def is_important_bot_file(path: str | pathlib.Path) -> bool:
+def is_important_bot_file(path: str | pathlib.Path) -> bool:
     """path が sys_files (重要ファイル) に該当するかを確認する。
 
     sys_files はコンフィグの discord_commands.cmd.stdin.sys_files で定義される。
@@ -66,3 +66,28 @@ async def is_important_bot_file(path: str | pathlib.Path) -> bool:
     ]
 
     return any(resolved == f or resolved.is_relative_to(f) for f in important)
+
+
+def would_destroy_important_files(dir_path: str | pathlib.Path) -> bool:
+    """dir_path を丸ごと削除・置換 (rmtree + copytree など) した場合に
+    sys_files のいずれかが巻き込まれて失われるかを確認する。
+
+    is_important_bot_file が「path 自体が保護対象か」を見るのに対し、
+    こちらは向きが逆で「path 以下を消したときに保護対象がその中に含まれているか」を見る。
+    dir_path が server_path 自体のように保護対象の親ディレクトリになっているケース
+    (is_important_bot_file 単体では検出できない) を捕捉するために使う。
+    """
+    resolved  = pathlib.Path(dir_path).resolve(strict=False)
+    sys_files = ctx.config["discord_commands"]["cmd"]["stdin"]["sys_files"]
+
+    src_dir   = pathlib.Path(__file__).parent
+
+    important = [
+        (src_dir / f).resolve()
+        for f in sys_files
+    ] + [
+        (ctx.server_path / f).resolve()
+        for f in sys_files
+    ]
+
+    return any(f == resolved or f.is_relative_to(resolved) for f in important)

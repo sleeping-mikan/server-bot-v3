@@ -209,7 +209,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not ctx.enable_advanced_features and await is_important_bot_file(path):
+        if not ctx.enable_advanced_features and is_important_bot_file(path):
             mk_logger.error(f"permission denied : {path}")
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
@@ -255,7 +255,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not ctx.enable_advanced_features and await is_important_bot_file(path):
+        if not ctx.enable_advanced_features and is_important_bot_file(path):
             rm_logger.error(f"permission denied : {path}")
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
@@ -314,7 +314,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["rmdir"]["not_exists"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if await is_important_bot_file(path) and not ctx.enable_advanced_features:
+        if is_important_bot_file(path) and not ctx.enable_advanced_features:
             rmdir_logger.error(f"permission denied : {path}")
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(path), inline=False)
             await interaction.response.send_message(embed=embed)
@@ -365,7 +365,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             await interaction.response.send_message(embed=embed)
             return
         if not ctx.enable_advanced_features and \
-                (await is_important_bot_file(abs_path) or await is_important_bot_file(abs_dest)):
+                (is_important_bot_file(abs_path) or is_important_bot_file(abs_dest)):
             mv_logger.error(f"permission denied : {abs_path} -> {abs_dest}")
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(abs_path), inline=False)
             await interaction.response.send_message(embed=embed)
@@ -429,7 +429,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["entry_file_locked"].format(save_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not ctx.enable_advanced_features and await is_important_bot_file(save_path):
+        if not ctx.enable_advanced_features and is_important_bot_file(save_path):
             wget_logger.error(f"permission denied : {save_path}")
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(save_path), inline=False)
             await interaction.response.send_message(embed=embed)

@@ -10,15 +10,16 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 
 from core.state import ctx
-from web.auth import is_valid_session, unauth
+from web.auth import require_permission
 
 bp = Blueprint("logs", __name__)
 
 
 @bp.route("/api/logs/list")
 def logs_list():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("logs")
+    if err:
+        return err
     files: list[str] = []
     server_logs = ctx.server_path / "logs"
     if server_logs.is_dir():
@@ -30,8 +31,9 @@ def logs_list():
 
 @bp.route("/api/logs/get")
 def logs_get():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("logs")
+    if err:
+        return err
     filename = request.args.get("filename", "")
     if not filename or any(c in filename for c in "/\\%") or not filename.endswith(".log"):
         return jsonify({"error": "invalid filename"}), 400

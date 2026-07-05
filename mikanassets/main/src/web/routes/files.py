@@ -19,18 +19,33 @@ import zipfile
 import requests as _requests
 from flask import Blueprint, jsonify, request, send_file
 
+from core.path_utils import is_entry_file, is_important_bot_file
 from core.state import ctx
 from core.zip_utils import safe_unzip
-from web.auth import is_valid_session, unauth
+from web.auth import require_permission
 from web.utils import resolve_server_path
 
 bp = Blueprint("files", __name__)
 
 
+def _protected(path) -> bool:
+    """path が保護対象 (entry file / sys_files) で、advanced機能が無効かを返す。
+
+    core.path_utils のガードは元々 Discord コマンド (bot/commands/cmd.py) 向けに
+    書かれていたが、Web の file manager ルートはこれまで is_path_within_scope
+    (スコープ内かどうか) しか見ておらず、.config や mikanassets/data/tokens.json
+    のような重要ファイルを rm / mv / download できてしまっていた。
+    """
+    if ctx.enable_advanced_features:
+        return False
+    return is_entry_file(path) or is_important_bot_file(path)
+
+
 @bp.route("/api/files/list")
 def files_list():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin ls")
+    if err:
+        return err
     rel = request.args.get("path", "")
     path = resolve_server_path(rel) if rel else ctx.server_path
     if path is None or not path.exists() or not path.is_dir():
@@ -53,8 +68,9 @@ def files_list():
 
 @bp.route("/api/files/mkdir", methods=["POST"])
 def files_mkdir():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin mkdir")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     path = resolve_server_path(data.get("path", ""))
     if path is None:
@@ -67,12 +83,15 @@ def files_mkdir():
 
 @bp.route("/api/files/rmdir", methods=["POST"])
 def files_rmdir():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin rmdir")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     path = resolve_server_path(data.get("path", ""))
     if path is None or not path.exists() or not path.is_dir():
         return jsonify({"error": "not a directory"}), 400
+    if _protected(path):
+        return jsonify({"error": "permission denied"}), 403
     from shutil import rmtree
     rmtree(path)
     return jsonify({"ok": True})
@@ -80,22 +99,26 @@ def files_rmdir():
 
 @bp.route("/api/files/rm", methods=["POST"])
 def files_rm():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin rm")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     path = resolve_server_path(data.get("path", ""))
     if path is None or not path.exists():
         return jsonify({"error": "not found"}), 404
     if not path.is_file():
         return jsonify({"error": "not a file"}), 400
+    if _protected(path):
+        return jsonify({"error": "permission denied"}), 403
     path.unlink()
     return jsonify({"ok": True})
 
 
 @bp.route("/api/files/mv", methods=["POST"])
 def files_mv():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin mv")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     src = resolve_server_path(data.get("src", ""))
     dst = resolve_server_path(data.get("dst", ""))
@@ -103,6 +126,8 @@ def files_mv():
         return jsonify({"error": "invalid path"}), 400
     if not src.exists():
         return jsonify({"error": "source not found"}), 404
+    if _protected(src) or _protected(dst):
+        return jsonify({"error": "permission denied"}), 403
     from shutil import move as _move
     _move(str(src), str(dst))
     return jsonify({"ok": True})
@@ -110,13 +135,16 @@ def files_mv():
 
 @bp.route("/api/files/download")
 def files_download():
-    if not is_valid_session():
-        return unauth()
+    # ダウンロードはDiscordの /cmd stdin send-discord (任意ファイルをリンクとして
+    # 外部に取り出す操作) と実質同じ権限を要求する
+    err = require_permission("cmd stdin send-discord")
+    if err:
+        return err
     rel = request.args.get("path", "")
     path = resolve_server_path(rel) if rel else None
     if path is None or not path.exists():
         return jsonify({"error": "not found"}), 404
-    if path.name == ".token":
+    if _protected(path):
         return jsonify({"error": "access denied"}), 403
     if path.is_file():
         return send_file(path, as_attachment=True, download_name=path.name)
@@ -135,8 +163,10 @@ def files_download():
 
 @bp.route("/api/files/upload", methods=["POST"])
 def files_upload():
-    if not is_valid_session():
-        return unauth()
+    # 新規ファイル作成はDiscordの /cmd stdin mk (attachmentで内容を書き込める) と同じ操作
+    err = require_permission("cmd stdin mk")
+    if err:
+        return err
     file = request.files.get("file")
     rel_dir = request.form.get("path", "")
     if file is None or not file.filename:
@@ -147,6 +177,8 @@ def files_upload():
         return jsonify({"error": "invalid path"}), 400
     if path.exists():
         return jsonify({"error": "file already exists"}), 400
+    if _protected(path):
+        return jsonify({"error": "permission denied"}), 403
     path.parent.mkdir(parents=True, exist_ok=True)
     file.save(path)
     return jsonify({"ok": True, "name": path.name})
@@ -154,8 +186,9 @@ def files_upload():
 
 @bp.route("/api/files/unzip", methods=["POST"])
 def files_unzip():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin unzip")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     rel = data.get("path", "")
     if not rel:
@@ -176,8 +209,9 @@ def files_unzip():
 
 @bp.route("/api/files/wget", methods=["POST"])
 def files_wget():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd stdin wget")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     url = data.get("url", "").strip()
     rel = data.get("path", "").strip()
@@ -192,6 +226,8 @@ def files_wget():
         return jsonify({"error": "invalid path"}), 400
     if path.exists():
         return jsonify({"error": "file already exists"}), 400
+    if _protected(path):
+        return jsonify({"error": "permission denied"}), 403
     try:
         resp = _requests.get(url, stream=True, timeout=30)
         resp.raise_for_status()

@@ -13,15 +13,16 @@ import psutil
 from flask import Blueprint, jsonify
 
 from core.state import ctx
-from web.auth import is_valid_session, unauth
+from web.auth import require_permission
 
 bp = Blueprint("status", __name__)
 
 
 @bp.route("/api/status")
 def status():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("status")
+    if err:
+        return err
     MB = 1024 ** 2
     server_online = ctx.server_process.poll_or_kill()
     bot_mem_mb = psutil.Process(os.getpid()).memory_info().rss / MB
@@ -46,8 +47,9 @@ def status():
 
 @bp.route("/api/ip")
 def ip():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("ip")
+    if err:
+        return err
     from bot.commands.ip import get_display_ip
     display = get_display_ip()
     return jsonify({"ip": display or "N/A"})

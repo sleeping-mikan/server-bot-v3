@@ -26,7 +26,7 @@ from flask import (
 
 from core.log_setup import LogManager
 from core.state import ctx
-from web.auth import is_valid_session, is_valid_token, unauth
+from web.auth import is_valid_session, is_valid_token, require_permission
 
 bp = Blueprint("main", __name__)
 
@@ -62,6 +62,9 @@ def get_console_data():
     if not is_valid_session():
         session["logout_reason"] = "This token has expired. create new token."
         return jsonify({"redirect": url_for("main.logout")})
+    err = require_permission("logs")
+    if err:
+        return err
     converter = Ansi2HTMLConverter(inline=True, scheme="xterm")
     html_string = converter.convert("\n".join(LogManager.log_msg), full=False)
     server_online = ctx.server_process.poll_or_kill()
@@ -73,8 +76,9 @@ def get_console_data():
 
 @bp.route("/submit_data", methods=["POST"])
 def submit_data():
-    if not is_valid_session():
-        return unauth()
+    err = require_permission("cmd serverin")
+    if err:
+        return err
     data = request.get_json(silent=True) or {}
     user_input = data.get("userInput") or request.form.get("userInput", "")
     if ctx.server_process.is_stopped():

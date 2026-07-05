@@ -13,7 +13,7 @@ from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
-from core.path_utils import is_important_bot_file, is_path_within_scope
+from core.path_utils import is_important_bot_file, is_path_within_scope, would_destroy_important_files
 from bot.utils import (
     is_running_server,
     not_enough_permission,
@@ -84,7 +84,7 @@ def setup() -> None:
             embed.add_field(name="", value=ctx.text.response_msg["other"]["is_running"], inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not is_path_within_scope(from_path) or await is_important_bot_file(from_path):
+        if not is_path_within_scope(from_path) or is_important_bot_file(from_path):
             _create.error(f"path not allowed : {from_path}")
             embed.add_field(
                 name="",
@@ -139,7 +139,8 @@ def setup() -> None:
             await interaction.response.send_message(embed=embed)
             return
         dest_path = str(ctx.server_path / path) if path else str(ctx.server_path)
-        if not is_path_within_scope(dest_path) or await is_important_bot_file(dest_path):
+        if not is_path_within_scope(dest_path) or is_important_bot_file(dest_path) \
+                or would_destroy_important_files(dest_path):
             _apply.error(f"path not allowed : {dest_path}")
             embed.add_field(
                 name="",
