@@ -16,6 +16,7 @@ import io
 import json
 import logging
 import os
+import subprocess
 import sys
 import zipfile
 from shutil import rmtree
@@ -168,12 +169,21 @@ async def update_self_if_commit_changed(
     env = os.environ.copy()
     env["MIKAN_BOT_TOKEN"] = ctx.token
     entry_file = os.environ.get("MIKAN_ENTRY_FILE", "server.py")
-    os.execve(sys.executable, [
-        sys.executable,
-        update_apply_path,
-        new_repo_root,
-        now_path,
-        entry_file,
-        msg_id,
-        channel_id,
-    ], env)
+
+    # os.execve は Windows 環境でプロセスがクラッシュする (STATUS_ACCESS_VIOLATION) ことが
+    # 確認されたため、子プロセスとして起動してから自分は即終了する方式に変更している。
+    # (DETACHED_PROCESS は子のコンソール出力が消えるため使わない。コンソールは継承する)
+    subprocess.Popen(
+        [
+            sys.executable,
+            update_apply_path,
+            new_repo_root,
+            now_path,
+            entry_file,
+            msg_id,
+            channel_id,
+        ],
+        env=env,
+        close_fds=True,
+    )
+    os._exit(0)
