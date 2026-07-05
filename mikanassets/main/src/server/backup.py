@@ -97,16 +97,27 @@ def create_backup_sync(from_path: str) -> str:
     return dst
 
 
+def _merge_copy_sync(src: Path, dst: Path) -> None:
+    """src の中身を dst にマージコピーする (同名エントリのみ上書き、dst 側の他ファイルは保持)。"""
+    dst.mkdir(parents=True, exist_ok=True)
+    for entry in src.iterdir():
+        target = dst / entry.name
+        if entry.is_dir():
+            _merge_copy_sync(entry, target)
+        else:
+            copy2(entry, target)
+
+
 def apply_backup_sync(backup_name: str, dest_path: str) -> None:
     """バックアップを同期的に適用する。Flask のような同期コンテキストから呼ぶ用。
 
-    dest_path が既に存在する場合は削除してから上書きする。
+    dest_path を丸ごと削除してから展開するのではなく、apply_backup (Discord側) と
+    同じくバックアップ側にあるエントリだけを上書き/追加するマージコピーで適用する。
+    dest_path に残っている無関係な既存ファイルは保持される。
     """
     src = ctx.backup_path / backup_name
     dest = Path(dest_path)
-    if dest.exists():
-        shutil.rmtree(dest)
-    shutil.copytree(str(src), str(dest))
+    _merge_copy_sync(src, dest)
 
 
 async def create_backup(

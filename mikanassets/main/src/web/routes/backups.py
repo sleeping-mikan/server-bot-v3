@@ -11,7 +11,7 @@ import logging
 
 from flask import Blueprint, jsonify, request
 
-from core.path_utils import is_important_bot_file, would_destroy_important_files
+from core.path_utils import backup_would_overwrite_important_files
 from core.state import ctx
 from web.auth import require_permission
 
@@ -62,13 +62,10 @@ def backups_apply():
     dest = resolve_server_path(dest_rel)
     if dest is None:
         return jsonify({"error": "invalid destination path"}), 400
-    # apply_backup_sync は dest を rmtree してから展開するため、dest 自体が保護対象
-    # (.config / .token / mikanassets 等) を内包している場合は丸ごと消えてしまう。
-    # is_important_bot_file だけでは dest == server_path のようなケース (保護対象の
-    # 親ディレクトリ) を検出できないため would_destroy_important_files も併用する。
-    if not ctx.enable_advanced_features and (
-        is_important_bot_file(dest) or would_destroy_important_files(dest)
-    ):
+    # apply_backup_sync はマージコピー (backup_path/backup_name にあるエントリだけを
+    # 上書き/追加、dest を丸ごと消さない) なので、dest がrootかどうかではなく
+    # バックアップの中身が実際に .config / .token / mikanassets 等と衝突するかで判定する。
+    if not ctx.enable_advanced_features and backup_would_overwrite_important_files(backup_path, dest):
         return jsonify({"error": "invalid destination path"}), 400
     apply_backup_sync(backup_name, str(dest))
     _logger.info(f"applied backup: {backup_name} -> {dest}")

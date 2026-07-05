@@ -68,26 +68,31 @@ def is_important_bot_file(path: str | pathlib.Path) -> bool:
     return any(resolved == f or resolved.is_relative_to(f) for f in important)
 
 
-def would_destroy_important_files(dir_path: str | pathlib.Path) -> bool:
-    """dir_path を丸ごと削除・置換 (rmtree + copytree など) した場合に
-    sys_files のいずれかが巻き込まれて失われるかを確認する。
+def backup_would_overwrite_important_files(
+    src_dir: str | pathlib.Path, dest_dir: str | pathlib.Path
+) -> bool:
+    """src_dir (バックアップの中身) を dest_dir にマージコピー (同名エントリのみ上書き)
+    した場合に、sys_files のいずれかを上書きしてしまうかを確認する。
 
-    is_important_bot_file が「path 自体が保護対象か」を見るのに対し、
-    こちらは向きが逆で「path 以下を消したときに保護対象がその中に含まれているか」を見る。
-    dir_path が server_path 自体のように保護対象の親ディレクトリになっているケース
-    (is_important_bot_file 単体では検出できない) を捕捉するために使う。
+    バックアップ適用は dest_dir を丸ごと削除するのではなく、src_dir にある
+    エントリだけを上書き/追加するマージコピーであることが前提。
+
+    src_dir 側 (バックアップの中身。数百〜数千ファイルもあり得る) を列挙して
+    保護パスと突き合わせるのではなく、sys_files (数件の固定リスト) 側を起点に
+    「その保護パスが dest_dir の下に来る位置にあり、かつ src_dir 側に対応する
+    相対パスが実際に存在するか」を直接確認する方が軽く、多段パスの sys_files
+    (例: "data/foo") に対しても取りこぼし・誤検知がない。
     """
-    resolved  = pathlib.Path(dir_path).resolve(strict=False)
+    src_dir   = pathlib.Path(src_dir)
+    dest_dir  = pathlib.Path(dest_dir).resolve(strict=False)
     sys_files = ctx.config["discord_commands"]["cmd"]["stdin"]["sys_files"]
 
-    src_dir   = pathlib.Path(__file__).parent
-
-    important = [
-        (src_dir / f).resolve()
-        for f in sys_files
-    ] + [
-        (ctx.server_path / f).resolve()
-        for f in sys_files
-    ]
-
-    return any(f == resolved or f.is_relative_to(resolved) for f in important)
+    for f in sys_files:
+        protected = (ctx.server_path / f).resolve()
+        try:
+            rel = protected.relative_to(dest_dir)
+        except ValueError:
+            continue  # dest_dir はこの保護パスの祖先ではない (衝突しようがない)
+        if (src_dir / rel).exists():
+            return True
+    return False
