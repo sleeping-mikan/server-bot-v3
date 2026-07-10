@@ -1,7 +1,7 @@
 # commands パッケージ
 
 INITIAL_COMMAND_PERMISSION: dict[str, int] = {
-    "stop": 1, "start": 1, "exit": 2,
+    "stop": 1, "start": 1, "exit": 2, "restart": 2,
     "cmd serverin": 1, "cmd stdin mk": 3, "cmd stdin rm": 2,
     "cmd stdin mkdir": 2, "cmd stdin rmdir": 2, "cmd stdin ls": 2,
     "cmd stdin mv": 3, "cmd stdin send-discord": 2, "cmd stdin wget": 3,

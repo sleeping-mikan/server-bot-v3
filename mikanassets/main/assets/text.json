@@ -4,6 +4,7 @@
       "/stop             ": "サーバーを停止します。但し起動していない場合にはエラーメッセージを返します。",
       "/start            ": "サーバーを起動します。但し起動している場合にはエラーメッセージを返します。",
       "/exit             ": "botを終了します。サーバーを停止してから実行してください。終了していない場合にはエラーメッセージを返します。\nまたこのコマンドを実行した場合次にbotが起動するまですべてのコマンドが無効になります。",
+      "/restart          ": "botを再起動します。アップデートは行いません。サーバーを停止してから実行してください。",
       "/cmd serverin     ": "/cmd <コマンド> を用いてサーバーコンソール上でコマンドを実行できます。使用できるコマンドは{allow_cmd}です。",
       "/cmd stdin        ": "/cmd stdin <ls|rm|mk|mv|rmdir|mkdir|wget|send-discord>を用いて、ファイル確認/削除/作成/移動/フォルダ作成/フォルダ削除/urlからダウンロード/discord送信を実行できます。例えばサーバーディレクトリ直下にa.txtを作成する場合は/cmd stdin mk a.txtと入力します。",
       "/backup create    ": "/backup create <directory> でデータをバックアップします。",
@@ -23,6 +24,7 @@
       "/stop             ": "Stop the server. If the server is not running, an error message will be returned.",
       "/start            ": "Start the server. If the server is running, an error message will be returned.",
       "/exit             ": "Exit the bot. Stop the server first and then run the command. If the server is not running, an error message will be returned.\n",
+      "/restart          ": "Restart the bot without updating. Stop the server first and then run the command.",
       "/cmd serverin     ": "/cmd <mc command> can be used to execute commands in the server console. The available commands are {allow_cmd}.",
       "/cmd stdin        ": "/cmd stdin <ls|rm|mk|mv|rmdir|mkdir|wget|send-discord> can be used to execute commands in the server console. For example, to create a file in the server directory, you can type /cmd stdin mk a.txt.",
       "/backup create    ": "/backup create [directory] creates data. If the directory name is omitted, worlds is copied.",
@@ -44,6 +46,7 @@
       "stop": "サーバーを停止します。",
       "start": "サーバーを起動します。",
       "exit": "botを終了します。",
+      "restart": "botを再起動します。(アップデートは行いません)",
       "cmd": {
         "serverin": "サーバーにコマンドを送信します。",
         "stdin": {
@@ -85,6 +88,7 @@
       "stop": "Stop the server.",
       "start": "Start the server.",
       "exit": "Exit the bot.",
+      "restart": "Restart the bot without updating.",
       "cmd": {
         "serverin": "Send a command to the server.",
         "stdin": {
@@ -228,6 +232,9 @@
       },
       "exit": {
         "success": "botを終了します..."
+      },
+      "restart": {
+        "success": "botを再起動します..."
       },
       "error": {
         "error_base": "エラーが発生しました。\n"
@@ -382,6 +389,9 @@
       },
       "exit": {
         "success": "The bot is exiting..."
+      },
+      "restart": {
+        "success": "The bot is restarting..."
       },
       "error": {
         "error_base": "An error has occurred.\n"
