@@ -37,8 +37,11 @@ _replace_logger = logging.getLogger("update.replace")
 _sys_logger     = logging.getLogger("sys")
 
 
-def get_self_commit_id() -> str | None:
-    """リポジトリ HEAD の最新コミット SHA を GitHub API で取得する。"""
+def get_self_commit_id() -> tuple[str | None, str]:
+    """リポジトリ HEAD の最新コミット SHA を GitHub API で取得する。
+
+    戻り値: (コミット SHA, エラー理由)。成功時は理由が空文字列になる。
+    """
     branch = ctx.config["update"]["branch"] if ctx.config else "main"
     url = (
         f'https://api.github.com/repos/{_REPOSITORY["user"]}'
@@ -49,16 +52,19 @@ def get_self_commit_id() -> str | None:
         _sys_logger.error(f"github api error. status code: {response.status_code}")
         _sys_logger.error(f"request url: {url}")
         _sys_logger.error(f"response body: {response.text}")
-        return None
-    return response.json()["sha"]
+        # 422 はブランチ(ref)が存在しない場合に返される
+        if response.status_code == 422:
+            return None, f"branch '{branch}' not found. check 'update.branch' in .config"
+        return None, f"github api error. (status code: {response.status_code})"
+    return response.json()["sha"], ""
 
 
 def save_mikanassets_dat() -> None:
     """コミット ID を mikanassets/.dat に保存する(初回のみ)。"""
     ctx.paths.data_dir.mkdir(parents=True, exist_ok=True)
     if not ctx.paths.dat_file.exists():
-        commit = get_self_commit_id() or ""
-        ctx.paths.dat_file.write_text(json.dumps({"commit_id": commit}))
+        commit, _ = get_self_commit_id()
+        ctx.paths.dat_file.write_text(json.dumps({"commit_id": commit or ""}))
 
 
 async def update_self_if_commit_changed(
@@ -89,13 +95,13 @@ async def update_self_if_commit_changed(
         _update_logger.error("json load error (mikanassets/.dat). delete file.")
         return
 
-    github_commit = get_self_commit_id()
+    github_commit, error_reason = get_self_commit_id()
     if github_commit is None:
         _update_logger.error(
             "github commit is None. (github api error. check network / repository settings)"
         )
         if interaction is not None and embed is not None:
-            embed.add_field(name="error", value="github response error.", inline=False)
+            embed.add_field(name="error", value=error_reason or "github response error.", inline=False)
             await sender(interaction=interaction, embed=embed)
         return
 

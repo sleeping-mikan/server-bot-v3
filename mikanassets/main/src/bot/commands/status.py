@@ -63,12 +63,13 @@ def setup(server_name: str, web_port: int) -> None:
         embed.add_field(name=ctx.text.response_msg["status"]["cpu_title"], value="\n".join(send_str), inline=False)
         status_logger.info(f"get cpu usage -> {' '.join(send_str)}")
 
+        branch = ctx.config["update"]["branch"] if ctx.config else "main"
         embed.add_field(
             name=ctx.text.response_msg["status"]["base_title"],
             value=ctx.text.response_msg["status"]["base_value"].format(
                 platform.system() + " " + platform.release(),
                 sys.version,
-                get_version(),
+                f"{get_version()}({branch})",
             ),
             inline=True,
         )
