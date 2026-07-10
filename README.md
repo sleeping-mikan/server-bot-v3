@@ -34,7 +34,7 @@ Discord を用いて特定のサーバーを管理できます。
 > [!NOTE]
 > 推奨ディレクトリは実行する `server.[exe/jar]` が存在する階層です。その場所が rootディレクトリとなり、一部の権限を持つ Discord ユーザーはファイル操作を行えます。
 
-詳細な使い方・コマンド一覧・`.config` リファレンスは **[useit.md](useit.md)** を参照してください。
+詳細な使い方・コマンド一覧・`.config` リファレンスは **[ドキュメントサイト](https://sleeping-mikan.github.io/server-bot-docs/)** を参照してください。
 
 ## web 上での操作
 

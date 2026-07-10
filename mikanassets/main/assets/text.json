@@ -450,7 +450,7 @@
     }
   },
   "send_help": {
-    "ja": "詳細なHelpはこちらを参照してください\n<https://github.com/sleeping-mikan/server-bot-v2/blob/main/README.md>\n",
-    "en": "Details on the help can be found here\n<https://github.com/sleeping-mikan/server-bot-v2/blob/main/README.md>\n"
+    "ja": "詳細なHelpはこちらを参照してください\n<https://sleeping-mikan.github.io/server-bot-docs/>\n",
+    "en": "Details on the help can be found here\n<https://sleeping-mikan.github.io/server-bot-docs/>\n"
   }
 }
