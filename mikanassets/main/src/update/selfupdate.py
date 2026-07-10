@@ -47,6 +47,8 @@ def get_self_commit_id() -> str | None:
     response = requests.get(url)
     if response.status_code != 200:
         _sys_logger.error(f"github api error. status code: {response.status_code}")
+        _sys_logger.error(f"request url: {url}")
+        _sys_logger.error(f"response body: {response.text}")
         return None
     return response.json()["sha"]
 
@@ -130,6 +132,7 @@ async def update_self_if_commit_changed(
     response = requests.get(zip_url)
     if response.status_code != 200:
         _sys_logger.error(f"response error. status_code : {response.status_code}")
+        _sys_logger.error(f"request url: {zip_url}")
         if interaction is not None and embed is not None:
             embed.add_field(name="error : github zip download error", value="", inline=False)
             await sender(interaction=interaction, embed=embed)
