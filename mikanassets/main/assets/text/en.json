@@ -243,7 +243,8 @@
       }
     },
     "lang": {
-      "success": "Language changed to {}"
+      "success": "Language changed to {}",
+      "restart_note": "Restart the bot (/restart) to apply the change to command and argument descriptions"
     },
     "tokengen": {
       "success": "Generated token (valid for 30 days) : {}"

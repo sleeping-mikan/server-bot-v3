@@ -154,6 +154,10 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
             return
         await _change_lang(language, get_text_dat)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/lang {language}")
-        embed.add_field(name="", value=ctx.text.response_msg["lang"]["success"].format(language))
+        embed.add_field(
+            name="",
+            value=ctx.text.response_msg["lang"]["success"].format(language)
+            + "\n" + ctx.text.response_msg["lang"]["restart_note"],
+        )
         await interaction.response.send_message(embed=embed)
         lang_logger.info(f"change lang to {ctx.text.lang}")
