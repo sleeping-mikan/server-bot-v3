@@ -138,7 +138,8 @@
     "cmd": {
       "serverin": {
         "skipped_cmd": "The command is not found or not allowed",
-        "unicode_encode_error": "Failed to execute command due to UnicodeEncodeError(A character that is not included in the specified character code is used.)"
+        "unicode_encode_error": "Failed to execute command due to UnicodeEncodeError(A character that is not included in the specified character code is used.)",
+        "timeout": "The command was sent, but there was no response from the server"
       },
       "stdin": {
         "invalid_path": "`{}` is an invalid/operable area",
@@ -179,12 +180,7 @@
           "not_directory": "`{}` is not a directory"
         },
         "send-discord": {
-          "success": "<@{}> Sent to {} a file",
-          "file_io_error": "<@{}> File.io upload failed status -> `{}` , reason -> `{}` :: `{}`",
-          "not_file": "`{}` is not a file",
           "file_not_found": "`{}` not found",
-          "is_zip": "`{}` is a directory, so it will be compressed and sent to discord",
-          "is_file": "`{}` is a file, so it will be sent to discord",
           "send_myserver_link": "<@{}> Sent to {} a file link -> `{}`",
           "send_capacity_error": "<@{}> The file size of `{}` is over the limit of {} bytes and cannot be sent to discord"
         },

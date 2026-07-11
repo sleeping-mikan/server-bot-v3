@@ -127,7 +127,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
                 return
             await asyncio.sleep(0.1)
         ctx.is_back_discord = False
-        embed.add_field(name="", value=ctx.text.response_msg["cmd"]["serverin"].get("timeout", "(no response)"), inline=False)
+        embed.add_field(name="", value=ctx.text.response_msg["cmd"]["serverin"]["timeout"], inline=False)
         await interaction.followup.send(embed=embed)
 
     # /cmd stdin ls ───────────────────────────────────────────────────────────
