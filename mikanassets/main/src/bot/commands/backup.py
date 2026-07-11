@@ -73,6 +73,7 @@ def setup() -> None:
         name="create",
         description=ctx.text.command_desc[ctx.text.lang]["backup"]["create"],
     )
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["backup"]["create"])
     async def backup_create_cmd(interaction: discord.Interaction, path: str) -> None:
         from_path = str(ctx.server_path / path)
         await print_user(_create, interaction.user)
@@ -114,7 +115,11 @@ def setup() -> None:
         items   = [i.name for i in ctx.backup_path.iterdir() if current in i.name][-25:]
         return [app_commands.Choice(name=i, value=i) for i in items]
 
-    @command_group_backup.command(name="apply", description="apply backup")
+    @command_group_backup.command(
+        name="apply",
+        description=ctx.text.command_desc[ctx.text.lang]["backup"]["apply"],
+    )
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["backup"]["apply"])
     @app_commands.autocomplete(witch=_backup_autocomplete)
     async def backup_apply_cmd(
         interaction: discord.Interaction,

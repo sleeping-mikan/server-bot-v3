@@ -3,49 +3,53 @@ text_data.py — テキストデータ(JSON)の読み込み
 
 main.py から切り出したモジュール。
 従来 get_text_dat() がPythonの辞書リテラルとして直接埋め込んでいたテキストデータを、
-mikanassets/main/assets/text.json に外出しした上で読み込む。
+mikanassets/main/assets/text/ 以下の言語別ファイル (ja.json, en.json など) に
+外出しした上で読み込む。ファイル名 (拡張子を除いた部分) がそのまま言語コードになる。
 
-JSON上の構造:
+各言語ファイルのJSON構造:
     {
-        "help_msg": {"ja": {...}, "en": {...}},
-        "command_description": {"ja": {...}, "en": {...}},
-        "response_msg": {"ja": {...}, "en": {...}},
-        "activity_name": {"ja": {...}, "en": {...}}
+        "command_description": {...},
+        "command_args_description": {...},
+        "response_msg": {...},
+        "activity_name": {...},
+        "send_help": "..."
     }
 
 元のコードとの互換性のため、main.py側の変数の形は変えていない:
-    - HELP_MSG / COMMAND_DESCRIPTION は言語をキーとした辞書のまま (HELP_MSG[lang][...])
+    - COMMAND_DESCRIPTION / COMMAND_ARGS_DESCRIPTION は
+      言語をキーとした辞書のまま (COMMAND_DESCRIPTION[lang][...])
     - RESPONSE_MSG / ACTIVITY_NAME は「現在の言語の」辞書そのもの (RESPONSE_MSG[...])
 """
 
 import json
 from pathlib import Path
 
-# このファイル(mikanassets/main/src/bot/text_data.py)から見て assets/text.json の位置
-_ASSETS_PATH = Path(__file__).parent / ".." / ".." / "assets" / "text.json"
+# このファイル(mikanassets/main/src/bot/text_data.py)から見て assets/text/ の位置
+_TEXT_DIR = Path(__file__).parent / ".." / ".." / "assets" / "text"
 
 
-def load_text_data(lang: str, allow_cmd: set[str] | str = ""):
+def available_languages() -> list[str]:
+    """assets/text/ に存在する言語コード (ファイル名の語幹) の一覧を返す。"""
+    return sorted(path.stem for path in _TEXT_DIR.glob("*.json"))
+
+
+def load_text_data(lang: str):
     """
-    text.json を読み込み、(HELP_MSG, COMMAND_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help初期値) を返す。
+    text/*.json を読み込み、
+    (COMMAND_DESCRIPTION, COMMAND_ARGS_DESCRIPTION, RESPONSE_MSG, ACTIVITY_NAME, send_help初期値) を返す。
 
-    allow_cmd: HELP_MSGの "/cmd serverin" の説明文に埋め込む、許可されたコマンドの一覧
-               (元コードでは f-string でその場で埋め込んでいたものを、JSON側では
-               "{allow_cmd}" というプレースホルダにしてあるため、ここで.format()する)
+    lang に対応するファイルがない場合は en にフォールバックする。
     """
-    with _ASSETS_PATH.open("r", encoding="utf-8") as f:
-        data = json.load(f)
+    langs: dict[str, dict] = {}
+    for path in sorted(_TEXT_DIR.glob("*.json")):
+        with path.open("r", encoding="utf-8") as f:
+            langs[path.stem] = json.load(f)
 
-    help_msg = data["help_msg"]
-    command_description = data["command_description"]
-    response_msg = data["response_msg"].get(lang, data["response_msg"]["en"])
-    activity_name = data["activity_name"].get(lang, data["activity_name"]["en"])
-    send_help_initial = data["send_help"].get(lang, data["send_help"]["en"])
+    current = langs.get(lang, langs["en"])
+    command_description = {lang_key: data["command_description"] for lang_key, data in langs.items()}
+    command_args_description = {lang_key: data["command_args_description"] for lang_key, data in langs.items()}
+    response_msg = current["response_msg"]
+    activity_name = current["activity_name"]
+    send_help_initial = current["send_help"]
 
-    # allow_cmdプレースホルダの埋め込み(各言語分)
-    for lang_key, msgs in help_msg.items():
-        for key, value in list(msgs.items()):
-            if isinstance(value, str) and "{allow_cmd}" in value:
-                msgs[key] = value.format(allow_cmd=allow_cmd)
-
-    return help_msg, command_description, response_msg, activity_name, send_help_initial
+    return command_description, command_args_description, response_msg, activity_name, send_help_initial

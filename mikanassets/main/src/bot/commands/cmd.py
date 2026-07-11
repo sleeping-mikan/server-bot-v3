@@ -91,6 +91,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd serverin ───────────────────────────────────────────────────────────
 
     @command_group_cmd.command(name="serverin", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["serverin"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["serverin"])
     async def serverin_cmd(interaction: discord.Interaction, command: str) -> None:
         await print_user(serverin_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd serverin {command}")
@@ -132,6 +133,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin ls ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="ls", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["ls"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["ls"])
     async def ls_cmd(interaction: discord.Interaction, file_path: str) -> None:
         await print_user(ls_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin ls {file_path}")
@@ -178,6 +180,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin mk ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="mk", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["mk"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["mk"])
     async def mk_cmd(interaction: discord.Interaction, file_path: str, file: discord.Attachment | None = None) -> None:
         await print_user(mk_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin mk {file_path}")
@@ -224,6 +227,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin rm ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="rm", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["rm"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["rm"])
     async def rm_cmd(interaction: discord.Interaction, file_path: str) -> None:
         await print_user(rm_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin rm {file_path}")
@@ -268,6 +272,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin mkdir ────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="mkdir", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["mkdir"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["mkdir"])
     async def mkdir_cmd(interaction: discord.Interaction, dir_path: str) -> None:
         await print_user(mkdir_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin mkdir {dir_path}")
@@ -293,6 +298,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin rmdir ────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="rmdir", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["rmdir"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["rmdir"])
     async def rmdir_cmd(interaction: discord.Interaction, dir_path: str) -> None:
         await print_user(rmdir_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin rmdir {dir_path}")
@@ -327,6 +333,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin mv ───────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="mv", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["mv"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["mv"])
     async def mv_cmd(interaction: discord.Interaction, path: str, dest: str) -> None:
         await print_user(mv_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin mv {path} {dest}")
@@ -378,6 +385,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin send-discord ─────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="send-discord", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["send-discord"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["send-discord"])
     async def send_discord_cmd(interaction: discord.Interaction, path: str) -> None:
         await print_user(send_discord_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin send-discord {path}")
@@ -407,6 +415,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin wget ─────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="wget", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["wget"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["wget"])
     async def wget_cmd(interaction: discord.Interaction, url: str, path: str = "mi_dl_file.tmp") -> None:
         await print_user(wget_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin wget {url} {path}")
@@ -455,6 +464,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
     # /cmd stdin unzip ────────────────────────────────────────────────────────
 
     @command_group_cmd_stdin.command(name="unzip", description=ctx.text.command_desc[ctx.text.lang]["cmd"]["stdin"]["unzip"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["cmd"]["stdin"]["unzip"])
     async def unzip_cmd(interaction: discord.Interaction, file_path: str) -> None:
         await print_user(unzip_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/cmd stdin unzip {file_path}")

@@ -40,6 +40,7 @@ def setup() -> None:
     command_group_terminal = app_commands.Group(name="terminal", description="terminal group")
 
     @command_group_terminal.command(name="set", description=ctx.text.command_desc[ctx.text.lang]["terminal"]["set"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["terminal"]["set"])
     async def terminal_set_cmd(interaction: discord.Interaction, channel: discord.TextChannel | None = None) -> None:
         await print_user(set_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/terminal set {channel}")

@@ -33,17 +33,17 @@ from core.state import ctx
 
 async def load_text() -> None:
     (
-        ctx.text.help_msg,
         ctx.text.command_desc,
+        ctx.text.command_args_desc,
         ctx.text.response_msg,
         ctx.text.activity_name,
         send_help_initial,
-    ) = _text_data.load_text_data(ctx.text.lang, ctx.allow_cmd)
+    ) = _text_data.load_text_data(ctx.text.lang)
+    # コマンドの説明はスラッシュコマンドUIとドキュメントサイトに任せ、
+    # /help は環境固有情報 (docsリンク + web URL) のみを返す
     send_help_initial += f"web : http://{ctx.web_ip}:{ctx.web_port}\n"
     embed = ModifiedEmbeds.DefaultEmbed(title="How to use this bot")
-    for key in ctx.text.help_msg[ctx.text.lang]:
-        embed.add_field(name=key, value=ctx.text.help_msg[ctx.text.lang][key], inline=False)
-    embed.add_field(name="detail", value=send_help_initial, inline=False)
+    embed.add_field(name="", value=send_help_initial, inline=False)
     ctx.text.send_help = embed
 
 

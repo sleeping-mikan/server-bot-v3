@@ -31,8 +31,8 @@ class TextBundle:
     """テキスト・i18n データ。/lang 実行時に load_text_data() で一括更新される。"""
 
     lang:               str  = "en"
-    help_msg:           dict = field(default_factory=dict)
     command_desc:       dict = field(default_factory=dict)
+    command_args_desc:  dict = field(default_factory=dict)
     response_msg:       dict = field(default_factory=dict)
     activity_name:      dict = field(default_factory=dict)
     send_help:          Any  = None

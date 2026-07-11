@@ -8,6 +8,7 @@ from random import choices
 from string import ascii_letters, digits
 
 import discord
+from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
@@ -36,6 +37,7 @@ def setup() -> None:
     token_logger = LogManager.cmd.getChild("tokengen")
 
     @tree.command(name="tokengen", description=ctx.text.command_desc[ctx.text.lang]["tokengen"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["tokengen"])
     async def tokengen_cmd(interaction: discord.Interaction, level: int = 1) -> None:
         await print_user(token_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/tokengen {level}")

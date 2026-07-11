@@ -83,6 +83,7 @@ def setup(server_path: str, log_msg: deque) -> None:
         return [app_commands.Choice(name=f, value=f) for f in filtered]
 
     @tree.command(name="logs", description=ctx.text.command_desc[ctx.text.lang]["logs"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["logs"])
     @app_commands.autocomplete(filename=_autocomplete)
     async def logs_cmd(interaction: discord.Interaction, filename: str | None = None) -> None:
         await print_user(log_logger, interaction.user)

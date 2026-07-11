@@ -40,6 +40,7 @@ def setup() -> None:
         name="embed",
         description=ctx.text.command_desc[ctx.text.lang]["announce"]["embed"],
     )
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["announce"]["embed"])
     async def announce_embed_cmd(
         interaction: discord.Interaction,
         file:        discord.Attachment | None = None,

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import discord
+from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
@@ -25,6 +26,7 @@ def setup() -> None:
         name="update",
         description=ctx.text.command_desc[ctx.text.lang]["update"],
     )
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["update"])
     async def update_cmd(interaction: discord.Interaction, is_force: bool = False) -> None:
         await print_user(_update, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/update {is_force}")

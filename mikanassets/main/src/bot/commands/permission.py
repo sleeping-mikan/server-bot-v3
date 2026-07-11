@@ -10,6 +10,7 @@ from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
+from bot.text_data import available_languages
 from core.log_setup import LogManager
 from core.state import ctx
 from bot.utils import (
@@ -70,6 +71,7 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
         name="change",
         description=ctx.text.command_desc[ctx.text.lang]["permission"]["change"],
     )
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["permission"]["change"])
     async def change_cmd(interaction: discord.Interaction, level: int, user: discord.User) -> None:
         await print_user(admin_logger, interaction.user)
         embed = ModifiedEmbeds.DefaultEmbed(title=f"/permission change {level} {user}")
@@ -99,6 +101,7 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
         name="view",
         description=ctx.text.command_desc[ctx.text.lang]["permission"]["view"],
     )
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["permission"]["view"])
     async def view_cmd(interaction: discord.Interaction, user: discord.User, detail: bool) -> None:
         await print_user(permission_logger, interaction.user)
         if await user_permission(interaction.user) < ctx.text.command_permission["permission view"]:
@@ -140,9 +143,9 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
     tree.add_command(command_group_permission)
 
     @tree.command(name="lang", description=ctx.text.command_desc[ctx.text.lang]["lang"])
+    @app_commands.describe(**ctx.text.command_args_desc[ctx.text.lang]["lang"])
     @app_commands.choices(language=[
-        app_commands.Choice(name="en", value="en"),
-        app_commands.Choice(name="ja", value="ja"),
+        app_commands.Choice(name=lang, value=lang) for lang in available_languages()
     ])
     async def lang_cmd(interaction: discord.Interaction, language: str) -> None:
         await print_user(lang_logger, interaction.user)

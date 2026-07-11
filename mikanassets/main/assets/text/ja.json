@@ -1,0 +1,292 @@
+{
+  "command_description": {
+    "stop": "サーバーを停止します。",
+    "start": "サーバーを起動します。",
+    "exit": "botを終了します。",
+    "restart": "botを再起動します。",
+    "cmd": {
+      "serverin": "サーバーにコマンドを送信します。",
+      "stdin": {
+        "main": "サーバーディレクトリ以下に対するコマンドをサーバーの外側から実行します。",
+        "mk": "指定した相対パスを渡されたファイルまたは空にします。",
+        "rm": "指定した相対パスに完全一致するファイルを削除します。",
+        "ls": "指定したサーバーからの相対パスに存在するファイルを表示します。",
+        "mkdir": "指定した相対パスに新しいディレクトリを作成します。",
+        "rmdir": "指定した相対パスのディレクトリを再帰的に削除します。",
+        "mv": "指定したパスにあるファイルを別のパスに移動します。",
+        "send-discord": "discordにファイルを送信します。",
+        "wget": "urlからファイルをダウンロードします。",
+        "unzip": "zipファイルを展開します。"
+      }
+    },
+    "backup": {
+      "create": "サーバーデータをバックアップします。引数にはバックアップを取りたい対象のパスを指定します。",
+      "apply": "バックアップをサーバーに適用します。"
+    },
+    "ip": "サーバーのIPアドレスを表示します。",
+    "logs": "サーバーのログを表示します。引数にはファイル名を指定します。入力しない場合は最新の10件のログを返します。",
+    "help": "このbotのドキュメントとwebへのリンクを表示します。",
+    "permission": {
+      "change": "選択したユーザのbot操作権限を変更します。",
+      "view": "選択したユーザに対してbot操作権限を表示します。"
+    },
+    "lang": "botの言語を変更します。引数には言語コードを指定します。",
+    "tokengen": "webにログインするためのトークンを生成します。",
+    "terminal": {
+      "set": "サーバーのコンソールを実行したチャンネルに紐づけます。",
+      "del": "コンソール紐づけを実行したチャンネルから解除します。"
+    },
+    "update": "botを更新します。非推奨となった/replaceの後継コマンドです。",
+    "announce": {
+      "embed": "discordにテキストをembedで送信します。引数にはmd形式のテキストファイルを指定するか、文字列を指定します。"
+    },
+    "status": "プロセスの状態を表示します。"
+  },
+  "command_args_description": {
+    "cmd": {
+      "serverin": {
+        "command": "サーバーに送信するコマンド"
+      },
+      "stdin": {
+        "ls": {
+          "file_path": "内容を表示するディレクトリの相対パス"
+        },
+        "mk": {
+          "file_path": "作成するファイルの相対パス",
+          "file": "ファイルの内容として使用する添付ファイル(省略時は空ファイルを作成)"
+        },
+        "rm": {
+          "file_path": "削除するファイルの相対パス"
+        },
+        "mkdir": {
+          "dir_path": "作成するディレクトリの相対パス"
+        },
+        "rmdir": {
+          "dir_path": "削除するディレクトリの相対パス"
+        },
+        "mv": {
+          "path": "移動元のファイルまたはディレクトリの相対パス",
+          "dest": "移動先の相対パス"
+        },
+        "send-discord": {
+          "path": "送信するファイルの相対パス"
+        },
+        "wget": {
+          "url": "ダウンロード元のURL",
+          "path": "ダウンロードしたファイルの保存先の相対パス"
+        },
+        "unzip": {
+          "file_path": "展開するzipファイルの相対パス"
+        }
+      }
+    },
+    "backup": {
+      "create": {
+        "path": "バックアップする対象の相対パス"
+      },
+      "apply": {
+        "witch": "適用するバックアップの名前",
+        "path": "バックアップの適用先の相対パス(省略時はサーバーディレクトリ直下)"
+      }
+    },
+    "logs": {
+      "filename": "表示するログファイル名(省略時は最新のログを表示)"
+    },
+    "permission": {
+      "change": {
+        "level": "設定する権限レベル(0を指定すると権限を削除)",
+        "user": "権限を変更するユーザー"
+      },
+      "view": {
+        "user": "権限を表示するユーザー",
+        "detail": "コマンドごとの利用可否も表示するかどうか"
+      }
+    },
+    "lang": {
+      "language": "設定する言語コード"
+    },
+    "terminal": {
+      "set": {
+        "channel": "コンソールを紐づけるチャンネル(省略時は実行したチャンネル)"
+      }
+    },
+    "tokengen": {
+      "level": "トークンに付与する権限レベル"
+    },
+    "update": {
+      "is_force": "更新がない場合でも強制的に更新するかどうか"
+    },
+    "announce": {
+      "embed": {
+        "file": "送信する内容が書かれたmd形式のテキストファイル",
+        "txt": "送信するテキスト"
+      }
+    }
+  },
+  "response_msg": {
+    "other": {
+      "no_permission": "権限が不足しています",
+      "is_running": "サーバーが起動しているため実行できません",
+      "is_not_running": "サーバーが起動していないため実行できません"
+    },
+    "stop": {
+      "success": "サーバーを停止します"
+    },
+    "start": {
+      "success": "サーバーを起動します"
+    },
+    "cmd": {
+      "serverin": {
+        "skipped_cmd": "コマンドが存在しない、または許可されないコマンドです",
+        "unicode_encode_error": "コマンドに不正な文字が含まれています(指定された文字コードに含まれない文字が利用されています。)"
+      },
+      "stdin": {
+        "invalid_path": "パス`{}`は不正/操作不可能な領域です",
+        "not_file": "`{}`はファイルではありません",
+        "not_file_or_directory": "`{}`はファイルまたはディレクトリではありません",
+        "permission_denied": "`{}`を操作する権限がありません",
+        "entry_file_locked": "`{}`はエントリファイルです。enable_advanced_featuresが有効な場合のみ操作できます",
+        "file_size_limit": "サイズ`{}`は制限`{}`を超えている可能性があるためFile.ioにアップロードします\nアップロード後に再度メンションで通知します",
+        "file_size_limit_web": "サイズ`{}`は制限`{}`を超えているのでアップロードできません",
+        "mk": {
+          "success": "ファイル`{}`を作成または上書きしました",
+          "is_link": "`{}`はシンボリックリンクであるため書き込めません",
+          "is_directory": "`{}`はディレクトリであるため書き込めません"
+        },
+        "rm": {
+          "success": "`{}`を削除しました",
+          "file_not_found": "`{}`は見つかりません"
+        },
+        "ls": {
+          "not_directory": "`{}`はディレクトリではありません",
+          "file_not_found": "`{}`は見つかりません",
+          "success": "`{}`\n```ansi\n{}```\n",
+          "to_long": "内容が2000文字を超えたためファイルに変換します。"
+        },
+        "mkdir": {
+          "success": "ディレクトリ`{}`を作成しました",
+          "exists": "`{}`は既に存在します"
+        },
+        "rmdir": {
+          "success": "ディレクトリ`{}`を削除しました",
+          "not_directory": "`{}`はディレクトリではありません",
+          "not_exists": "`{}`は見つかりません"
+        },
+        "mv": {
+          "success": "`{}`を`{}`に移動しました",
+          "not_exists": "`{}`は見つかりません",
+          "not_directory": "`{}`はディレクトリではありません",
+          "file_not_found": "`{}`は見つかりません"
+        },
+        "send-discord": {
+          "success": "<@{}> {} にファイルを送信しました",
+          "file_io_error": "<@{}> File.ioへのアップロードに失敗しました status -> `{}` , reason -> `{}` :: `{}`",
+          "file_not_found": "`{}`は見つかりません",
+          "not_file": "`{}`はファイルではありません",
+          "is_zip": "`{}`はディレクトリであるためzipで圧縮します",
+          "is_file": "`{}`はファイルであるため送信します",
+          "timeout": "<@{}> {} 秒を超えたため、送信を中断しました",
+          "raise_error": "<@{}> 送信中にエラーが発生しました\n```ansi\n{}```",
+          "send_myserver_link": "<@{}> {} から、{}をダウンロードできます。有効期限は5分です。",
+          "send_capacity_error": "<@{}> 容量{}は制限容量{}を超えているため、送信できません。"
+        },
+        "wget": {
+          "download_failed": "`{}`からファイルをダウンロードできません",
+          "download_success": "`{}`からファイルを{}にダウンロードしました",
+          "already_exists": "`{}`は既に存在します"
+        },
+        "unzip": {
+          "success": "`{}`を展開しました ({} ファイル)",
+          "not_found": "`{}`は見つかりません",
+          "not_zip": "`{}`はzipファイルではありません",
+          "unsafe_path": "zipファイル内に不正なパスが含まれています: `{}`"
+        }
+      }
+    },
+    "backup": {
+      "now_backup": "ファイルをコピー中・・・",
+      "success": "ファイルコピーが完了しました！",
+      "create": {
+        "data_not_found": "データが見つかりません",
+        "path_not_allowed": "許可されないパス"
+      },
+      "apply": {
+        "path_not_found": "指定されたパスが見つかりません",
+        "path_not_allowed": "許可されないパス",
+        "protected_path": "保護されたファイル ({}) と衝突するため、この場所には適用できません"
+      }
+    },
+    "ip": {
+      "not_allow": "このコマンドはconfigにより実行を拒否されました",
+      "get_ip_failed": "IPアドレスを取得できません",
+      "msg_startwith": "サーバーIP : "
+    },
+    "logs": {
+      "cant_access_other_dir": "他のディレクトリにアクセスすることはできません。この操作はログに記録されます。",
+      "not_found": "指定されたファイルが見つかりません。この操作はログに記録されます。"
+    },
+    "exit": {
+      "success": "botを終了します..."
+    },
+    "restart": {
+      "success": "botを再起動します..."
+    },
+    "error": {
+      "error_base": "エラーが発生しました。\n"
+    },
+    "permission": {
+      "success": "{} の権限 : \n実行可能ディレクトリへの操作 : {} \ndiscord管理者権限 : {}\nbot管理者権限 : {}",
+      "change": {
+        "already_added": "このユーザーはすでにbotの管理者権限を持っています",
+        "add_success": "`{}`のbot権限を変更しました",
+        "remove_success": "`{}`のbot権限を変更しました",
+        "already_removed": "このユーザーはbotの管理者権限を持っていません",
+        "invalid_level": "権限レベルには削除(0)または1-{}の整数を指定してください。(指定された値 : `{}`)"
+      }
+    },
+    "lang": {
+      "success": "言語を{}に変更しました"
+    },
+    "tokengen": {
+      "success": "生成したトークン(30日間有効) : {}"
+    },
+    "terminal": {
+      "success": "サーバーのコンソールを{}に設定しました。"
+    },
+    "update": {
+      "same": "存在するファイルは既に最新です",
+      "different": "ファイルidが異なるため更新を行います",
+      "download_failed": "更新のダウンロードに失敗しました",
+      "replace": "ch_id {}\nmsg_id {}",
+      "force": "forceオプションが指定されたため、ファイルidに関わらず更新を行います。"
+    },
+    "announce": {
+      "embed": {
+        "exist_file_and_txt": "`{}`と`{}`は両方存在するため、送信できません",
+        "empty": "`{}`は空のため、送信できません",
+        "success": "データを送信しました",
+        "replace_slash_n": "テキスト形式のデータに\\\\nが存在したため\\nに変換しました",
+        "decode_error": "`{}`の読み込みに失敗しました"
+      }
+    },
+    "status": {
+      "mem_title": "メモリ使用量",
+      "mem_value": "**{} MB** Self",
+      "mem_server_value": "**{} MB** Server",
+      "cpu_title": "CPU使用率",
+      "cpu_value_thread": "**{}%** Thread {}",
+      "cpu_value_proc": "**{}%** Process {}",
+      "online_title": "オンライン状態",
+      "online_value": "{} Main Server\n{} Uvicorn Server\n{} Bot",
+      "base_title": "基本情報",
+      "base_value": "OS：**{}**\nPython：**{}**\nBot Version：**{}**"
+    }
+  },
+  "activity_name": {
+    "starting": "プロセス起動中",
+    "running": "{}を実行中",
+    "ending": "プロセス終了中",
+    "ended": "プロセス終了"
+  },
+  "send_help": "詳細なHelpはこちらを参照してください\n<https://sleeping-mikan.github.io/server-bot-docs/>\n"
+}

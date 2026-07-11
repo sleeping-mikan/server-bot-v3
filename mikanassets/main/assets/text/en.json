@@ -1,0 +1,290 @@
+{
+  "command_description": {
+    "stop": "Stop the server.",
+    "start": "Start the server.",
+    "exit": "Exit the bot.",
+    "restart": "Restart the bot without updating.",
+    "cmd": {
+      "serverin": "Send a command to the server.",
+      "stdin": {
+        "main": "Execute a shell command in the server directory (outside the server process).",
+        "mk": "Create or overwrite a file at the given path with the uploaded file, or create an empty file.",
+        "rm": "Delete the file specified by the relative path from the server.",
+        "ls": "List files in the specified relative path from the server.",
+        "mkdir": "Create a new directory specified by the relative path from the server.",
+        "rmdir": "Recursively delete the directory specified by the relative path from the server.",
+        "mv": "Move the file specified by the path to another path.",
+        "send-discord": "Send a file to Discord.",
+        "wget": "Download a file from a URL.",
+        "unzip": "Extract a zip file."
+      }
+    },
+    "backup": {
+      "create": "Create a backup of the server data. Specify the destination path.",
+      "apply": "Apply a backup to the server."
+    },
+    "ip": "Display the server's IP address in Discord.",
+    "logs": "Display server logs. If a file is specified, return that file. Otherwise, return the latest 10 logs.",
+    "help": "Show links to this bot's documentation and web panel.",
+    "permission": {
+      "view": "Display the bot operation rights of the selected user.",
+      "change": "Modify the selected user's bot permissions."
+    },
+    "lang": "Change the bot's language. With an argument, specify the language code.",
+    "tokengen": "Generate a token for login to the web.",
+    "terminal": {
+      "set": "Connect the server's console to a channel.",
+      "del": "Disconnect the server's console from a channel."
+    },
+    "update": "Update the bot. This is a successor command of /replace.",
+    "announce": {
+      "embed": "Send text to discord with embed. Specify a md-formatted text file or a string as an argument."
+    },
+    "status": "Display the status of the process."
+  },
+  "command_args_description": {
+    "cmd": {
+      "serverin": {
+        "command": "Command to send to the server"
+      },
+      "stdin": {
+        "ls": {
+          "file_path": "Relative path of the directory to list"
+        },
+        "mk": {
+          "file_path": "Relative path of the file to create",
+          "file": "Attachment used as the file content (creates an empty file if omitted)"
+        },
+        "rm": {
+          "file_path": "Relative path of the file to delete"
+        },
+        "mkdir": {
+          "dir_path": "Relative path of the directory to create"
+        },
+        "rmdir": {
+          "dir_path": "Relative path of the directory to delete"
+        },
+        "mv": {
+          "path": "Relative path of the file or directory to move",
+          "dest": "Relative path of the destination"
+        },
+        "send-discord": {
+          "path": "Relative path of the file to send"
+        },
+        "wget": {
+          "url": "URL to download from",
+          "path": "Relative path to save the downloaded file"
+        },
+        "unzip": {
+          "file_path": "Relative path of the zip file to extract"
+        }
+      }
+    },
+    "backup": {
+      "create": {
+        "path": "Relative path to back up"
+      },
+      "apply": {
+        "witch": "Name of the backup to apply",
+        "path": "Relative path to apply the backup to (server root if omitted)"
+      }
+    },
+    "logs": {
+      "filename": "Log file name to display (shows the latest logs if omitted)"
+    },
+    "permission": {
+      "change": {
+        "level": "Permission level to set (0 to remove)",
+        "user": "User whose permission to change"
+      },
+      "view": {
+        "user": "User whose permission to display",
+        "detail": "Whether to also show availability of each command"
+      }
+    },
+    "lang": {
+      "language": "Language code to set"
+    },
+    "terminal": {
+      "set": {
+        "channel": "Channel to link the console to (current channel if omitted)"
+      }
+    },
+    "tokengen": {
+      "level": "Permission level of the generated token"
+    },
+    "update": {
+      "is_force": "Whether to force the update even if there are no changes"
+    },
+    "announce": {
+      "embed": {
+        "file": "Markdown-formatted text file containing the content to send",
+        "txt": "Text to send"
+      }
+    }
+  },
+  "response_msg": {
+    "other": {
+      "no_permission": "Permission denied",
+      "is_running": "Server is still running",
+      "is_not_running": "Server is not running"
+    },
+    "stop": {
+      "success": "The server has been stopped"
+    },
+    "start": {
+      "success": "The server has been started"
+    },
+    "cmd": {
+      "serverin": {
+        "skipped_cmd": "The command is not found or not allowed",
+        "unicode_encode_error": "Failed to execute command due to UnicodeEncodeError(A character that is not included in the specified character code is used.)"
+      },
+      "stdin": {
+        "invalid_path": "`{}` is an invalid/operable area",
+        "not_file": "`{}` is not a file",
+        "not_file_or_directory": "`{}` is not a file or directory",
+        "permission_denied": "`{}` cannot be modified because it is an important file",
+        "entry_file_locked": "`{}` is the entry file and can only be modified when enable_advanced_features is enabled",
+        "file_size_limit": "Upload to File.io because the file size of `{}` is over the limit of {} bytes\nmention to you if ended",
+        "file_size_limit_web": "Cannot upload to File.io because the file size of `{}` is over the limit of {} bytes",
+        "mk": {
+          "success": "`{}` has been created or overwritten",
+          "is_link": "`{}` is a symbolic link and cannot be written",
+          "is_directory": "`{}` is a directory and cannot be written"
+        },
+        "rm": {
+          "success": "`{}` has been deleted",
+          "file_not_found": "`{}` not found"
+        },
+        "ls": {
+          "not_directory": "`{}` is not a directory",
+          "file_not_found": "`{}` not found",
+          "success": "`{}`\n```ansi\n{}```\n",
+          "to_long": "The content is over 2000 characters and will be converted to a file."
+        },
+        "mkdir": {
+          "success": "Directory `{}` has been created",
+          "exists": "`{}` already exists"
+        },
+        "rmdir": {
+          "success": "Directory `{}` has been deleted",
+          "not_directory": "`{}` is not a directory",
+          "not_exists": "`{}` not found"
+        },
+        "mv": {
+          "success": "`{}` has been moved to `{}`",
+          "file_not_found": "`{}` not found",
+          "not_exists": "`{}` not found",
+          "not_directory": "`{}` is not a directory"
+        },
+        "send-discord": {
+          "success": "<@{}> Sent to {} a file",
+          "file_io_error": "<@{}> File.io upload failed status -> `{}` , reason -> `{}` :: `{}`",
+          "not_file": "`{}` is not a file",
+          "file_not_found": "`{}` not found",
+          "is_zip": "`{}` is a directory, so it will be compressed and sent to discord",
+          "is_file": "`{}` is a file, so it will be sent to discord",
+          "send_myserver_link": "<@{}> Sent to {} a file link -> `{}`",
+          "send_capacity_error": "<@{}> The file size of `{}` is over the limit of {} bytes and cannot be sent to discord"
+        },
+        "wget": {
+          "download_failed": "Download failed url:{}",
+          "download_success": "Download complete url:{} path:{}",
+          "already_exists": "`{}` already exists"
+        },
+        "unzip": {
+          "success": "Extracted `{}` ({} files)",
+          "not_found": "`{}` not found",
+          "not_zip": "`{}` is not a zip file",
+          "unsafe_path": "Zip contains unsafe path: `{}`"
+        }
+      }
+    },
+    "backup": {
+      "now_backup": "File copy in progress",
+      "success": "File copy complete!",
+      "create": {
+        "data_not_found": "Data not found",
+        "path_not_allowed": "Path not allowed"
+      },
+      "apply": {
+        "path_not_found": "Path is not exists",
+        "path_not_allowed": "Path not allowed",
+        "protected_path": "Cannot apply here — it collides with the protected file ({})"
+      }
+    },
+    "ip": {
+      "not_allow": "This command is denied by config",
+      "get_ip_failed": "Failed to get IP address",
+      "msg_startwith": "Server IP : "
+    },
+    "logs": {
+      "cant_access_other_dir": "Cannot access other directory. This operation will be logged.",
+      "not_found": "The specified file was not found. This operation will be logged."
+    },
+    "exit": {
+      "success": "The bot is exiting..."
+    },
+    "restart": {
+      "success": "The bot is restarting..."
+    },
+    "error": {
+      "error_base": "An error has occurred.\n"
+    },
+    "permission": {
+      "success": "{}'s permission : \nadvanced(root) features : {}\ndiscord administrator permission : {}\nbot administrator permission : {}",
+      "change": {
+        "already_added": "The user has already been added as an administrator",
+        "add_success": "Added as an administrator to {}",
+        "already_removed": "The user has already been removed as an administrator",
+        "remove_success": "Removed as an administrator from {}",
+        "invalid_level": "Please specify an integer between 0 and {} for the permission level. (specified value : `{}`)"
+      }
+    },
+    "lang": {
+      "success": "Language changed to {}"
+    },
+    "tokengen": {
+      "success": "Generated token (valid for 30 days) : {}"
+    },
+    "terminal": {
+      "success": "The terminal has been set to {}"
+    },
+    "update": {
+      "same": "The same version is already installed",
+      "different": "The file id is different to update",
+      "download_failed": "Download failed",
+      "replace": "ch_id {}\nmsg_id {}",
+      "force": "update server.py because force option is true"
+    },
+    "announce": {
+      "embed": {
+        "exist_file_and_txt": "File and text cannot be written at the same time",
+        "empty": "Text cannot be empty",
+        "decode_error": "Failed to decode file",
+        "success": "File has been sent",
+        "replace_slash_n": "found \\n, replaced to \\r\\n"
+      }
+    },
+    "status": {
+      "mem_title": "Memory Usage",
+      "mem_value": "**{} MB** Self",
+      "mem_server_value": "**{} MB** Server",
+      "cpu_title": "CPU Usage",
+      "cpu_value_thread": "**{}%** Thread {}",
+      "cpu_value_proc": "**{}%** Process {}",
+      "online_title": "Online Status",
+      "online_value": "{} Main Server\n{} Uvicorn Server\n{} Bot",
+      "base_title": "Basic Information",
+      "base_value": "OS: **{}**\nPython: **{}**\nBot Version: **{}**"
+    }
+  },
+  "activity_name": {
+    "starting": "Server go!",
+    "running": "Server exec({})!",
+    "ending": "Server stopping!",
+    "ended": "Server stop!"
+  },
+  "send_help": "Details on the help can be found here\n<https://sleeping-mikan.github.io/server-bot-docs/>\n"
+}
