@@ -44,6 +44,30 @@ def _set_permission(user_id: int, level: int) -> PermChangeResult:
     return PermChangeResult.UPDATED if is_update else PermChangeResult.ADDED
 
 
+def _chunk_lines(text: str, max_len: int) -> list[str]:
+    """text を改行単位で、1チャンクが max_len 文字以下になるように分割する。
+
+    拡張機能が独自の権限キー(例: "rcon cmd" 等)を commands_level へ登録できるため、
+    キー数が多いと detail 表示が1つのembedフィールド(Discordの上限1024文字)に
+    収まらなくなる。1行を分断しないよう改行単位で複数フィールドに分けて表示する。
+    """
+    lines = text.split("\n")
+    chunks: list[str] = []
+    current: list[str] = []
+    current_len = 0
+    for line in lines:
+        added_len = len(line) + 1
+        if current and current_len + added_len > max_len:
+            chunks.append("\n".join(current))
+            current = []
+            current_len = 0
+        current.append(line)
+        current_len += added_len
+    if current:
+        chunks.append("\n".join(current))
+    return chunks
+
+
 def _remove_permission(user_id: int) -> PermChangeResult:
     if get_member_level(user_id) == 0:
         return PermChangeResult.NOT_FOUND
@@ -110,9 +134,10 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
         embed     = ModifiedEmbeds.DefaultEmbed(title=f"/permission view {user} {detail}")
         max_len   = max(len(k) for k in ctx.text.command_permission)
         advanced  = "☑" if ctx.enable_advanced_features else "☐"
+        use_discord_admin = ctx.config["discord_commands"]["admin"].get("use_discord_admin", True)
         admin_mark = (
             f"☑({max(ctx.text.command_permission.values())})"
-            if await is_administrator(user) else "☐"
+            if use_discord_admin and await is_administrator(user) else "☐"
         )
         perm_level = await user_permission(user)
         if detail:
@@ -126,9 +151,13 @@ def setup(get_text_dat: Callable[[], Awaitable[None]]) -> None:
                 name="",
                 value=ctx.text.response_msg["permission"]["success"].format(
                     user, advanced, admin_mark, perm_level
-                ) + "\n```\n" + detail_str + "\n```",
+                ),
                 inline=False,
             )
+            # commands_level は拡張機能がキーを追加できるため、Discordのフィールド上限
+            # (1024文字)を超えうる。改行単位で複数フィールドに分割して表示する。
+            for chunk in _chunk_lines(detail_str, 1000):
+                embed.add_field(name="", value=f"```\n{chunk}\n```", inline=False)
         else:
             embed.add_field(
                 name="",
