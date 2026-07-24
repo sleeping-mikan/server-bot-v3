@@ -24,6 +24,8 @@ def start_server():
     result = _start(ctx.server_logger)
     if result == StartResult.ALREADY_RUNNING:
         return jsonify({"ok": False, "message": ctx.text.response_msg["other"]["is_running"]})
+    if result == StartResult.BACKUP_IN_PROGRESS:
+        return jsonify({"ok": False, "message": ctx.text.response_msg["other"]["backup_in_progress"]})
     return jsonify({"ok": True, "message": ctx.text.response_msg["start"]["success"]})
 
 

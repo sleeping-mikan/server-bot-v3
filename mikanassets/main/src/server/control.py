@@ -14,8 +14,9 @@ from core.state import ctx
 
 
 class StartResult(Enum):
-    SUCCESS         = auto()
-    ALREADY_RUNNING = auto()
+    SUCCESS             = auto()
+    ALREADY_RUNNING     = auto()
+    BACKUP_IN_PROGRESS  = auto()
 
 
 class StopResult(Enum):
@@ -25,6 +26,8 @@ class StopResult(Enum):
 
 def start_server(logger_func: Callable) -> StartResult:
     """サーバープロセスを起動する。"""
+    if ctx.is_backup_in_progress:
+        return StartResult.BACKUP_IN_PROGRESS
     if ctx.server_process.is_running():
         return StartResult.ALREADY_RUNNING
     ctx.server_process.start(

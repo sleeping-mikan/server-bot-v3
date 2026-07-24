@@ -36,6 +36,11 @@ def setup(server_logger: object) -> None:
             embed.add_field(name="", value=ctx.text.response_msg["other"]["is_running"], inline=False)
             await interaction.followup.send(embed=embed)
             return
+        if result == StartResult.BACKUP_IN_PROGRESS:
+            _start.error("backup is in progress")
+            embed.add_field(name="", value=ctx.text.response_msg["other"]["backup_in_progress"], inline=False)
+            await interaction.followup.send(embed=embed)
+            return
         _start.info("server start")
         embed.add_field(name="", value=ctx.text.response_msg["start"]["success"], inline=False)
         await interaction.followup.send(embed=embed)

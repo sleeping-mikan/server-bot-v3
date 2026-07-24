@@ -127,7 +127,8 @@
     "other": {
       "no_permission": "権限が不足しています",
       "is_running": "サーバーが起動しているため実行できません",
-      "is_not_running": "サーバーが起動していないため実行できません"
+      "is_not_running": "サーバーが起動していないため実行できません",
+      "backup_in_progress": "バックアップの作成・適用中のため実行できません"
     },
     "stop": {
       "success": "サーバーを停止します"

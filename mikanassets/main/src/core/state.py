@@ -89,6 +89,7 @@ class AppState:
     is_back_discord:       bool  = False
     cmd_logs:              deque = field(default_factory=lambda: deque(maxlen=100))
     is_write_server_block: bool  = False
+    is_backup_in_progress: bool  = False
 
     # ── 拡張機能ローディング用 ─────────────────────────────────────
     extension_commands_group: Any  = None

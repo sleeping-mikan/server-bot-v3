@@ -90,10 +90,14 @@ def create_backup_sync(from_path: str) -> str:
     """
     timestamp = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
     dst = str(ctx.backup_path / f"{timestamp}-{Path(from_path).name}")
-    if Path(from_path).is_dir():
-        shutil.copytree(from_path, dst)
-    else:
-        shutil.copy2(from_path, dst)
+    ctx.is_backup_in_progress = True
+    try:
+        if Path(from_path).is_dir():
+            shutil.copytree(from_path, dst)
+        else:
+            shutil.copy2(from_path, dst)
+    finally:
+        ctx.is_backup_in_progress = False
     return dst
 
 
@@ -117,7 +121,11 @@ def apply_backup_sync(backup_name: str, dest_path: str) -> None:
     """
     src = ctx.backup_path / backup_name
     dest = Path(dest_path)
-    _merge_copy_sync(src, dest)
+    ctx.is_backup_in_progress = True
+    try:
+        _merge_copy_sync(src, dest)
+    finally:
+        ctx.is_backup_in_progress = False
 
 
 async def create_backup(
@@ -127,7 +135,11 @@ async def create_backup(
     """バックアップを作成し、保存先の絶対パスを返す。"""
     timestamp = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
     dst = str(ctx.backup_path / f"{timestamp}-{Path(from_path).name}")
-    await copy_directory(from_path, dst, on_progress=on_progress)
+    ctx.is_backup_in_progress = True
+    try:
+        await copy_directory(from_path, dst, on_progress=on_progress)
+    finally:
+        ctx.is_backup_in_progress = False
     return dst
 
 
@@ -138,4 +150,8 @@ async def apply_backup(
 ) -> None:
     """バックアップを dest_path に適用する。"""
     src = str(ctx.backup_path / backup_name)
-    await copy_directory(src, dest_path, on_progress=on_progress)
+    ctx.is_backup_in_progress = True
+    try:
+        await copy_directory(src, dest_path, on_progress=on_progress)
+    finally:
+        ctx.is_backup_in_progress = False

@@ -127,7 +127,8 @@
     "other": {
       "no_permission": "Permission denied",
       "is_running": "Server is still running",
-      "is_not_running": "Server is not running"
+      "is_not_running": "Server is not running",
+      "backup_in_progress": "Cannot start while a backup is being created or applied"
     },
     "stop": {
       "success": "The server has been stopped"
