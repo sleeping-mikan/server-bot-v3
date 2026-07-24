@@ -8,6 +8,7 @@ load() を呼ぶと mikanassets/extension/ 以下を走査して拡張コマン�
 from __future__ import annotations
 
 import importlib
+import sys
 from collections import deque
 
 from discord import app_commands
@@ -32,6 +33,16 @@ def load() -> None:
     if not any(extension_dir.iterdir()):
         sys_log.info(f"no extension commands in {extension_dir}")
         return
+
+    # importlib.import_module("mikanassets.extension...") が解決できるように、
+    # mikanassets/ の親ディレクトリ (server.py のあるディレクトリ = ctx.paths.base) を
+    # sys.path に追加する。server.py は main.py をサブプロセスとして起動するため、
+    # Python が自動で sys.path に足すのは main.py のあるディレクトリ (mikanassets/main/src)
+    # だけであり、ctx.paths.base はどこにも追加されない。これを追加しないと
+    # 「No module named 'mikanassets'」で拡張機能が1つも読み込めない。
+    base_dir = str(ctx.paths.base)
+    if base_dir not in sys.path:
+        sys.path.insert(0, base_dir)
 
     sys_log.info(f"read extension commands -> {extension_dir}")
     extension_commands_groups: deque = deque()
