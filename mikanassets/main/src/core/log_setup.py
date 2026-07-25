@@ -232,6 +232,15 @@ class LogManager:
         )
 
     @classmethod
+    def snapshot_log_msg(cls) -> list[str]:
+        """log_msg の現在の中身をコピーして返す。
+
+        呼び出し側に内部の deque をそのまま渡さないためのgetter。deque自体は
+        _DequeHandler が随時追記し続けるので、呼ぶたびに最新のスナップショットになる。
+        """
+        return list(cls.log_msg)
+
+    @classmethod
     def setup_discord_lib(cls) -> None:
         """discord.py 内部ロガーにファイルハンドラを追加する (log_all=True 時のみ)。"""
         if not cls._log_all:
@@ -241,9 +250,3 @@ class LogManager:
         fh   = logging.FileHandler(str(path), encoding="utf-8")
         fh.setFormatter(cls.file_formatter)
         dlog.addHandler(fh)
-
-
-# ── モジュールレベルのエイリアス (後方互換・外部アクセス用) ──────────────────────
-
-log_msg         = LogManager.log_msg
-discord_log_msg = LogManager.discord_log_msg

@@ -66,7 +66,7 @@ def get_console_data():
     if err:
         return err
     converter = Ansi2HTMLConverter(inline=True, scheme="xterm")
-    html_string = converter.convert("\n".join(LogManager.log_msg), full=False)
+    html_string = converter.convert("\n".join(LogManager.snapshot_log_msg()), full=False)
     server_online = ctx.server_process.poll_or_kill()
     return jsonify({
         "html_string": html_string,

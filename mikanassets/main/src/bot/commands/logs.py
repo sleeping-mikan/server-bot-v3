@@ -16,7 +16,6 @@ setup() 内の @tree.command ハンドラ
 
 from __future__ import annotations
 
-from collections import deque
 from pathlib import Path
 
 import discord
@@ -65,10 +64,9 @@ def _trim_to_discord_limit(lines: list[str], limit: int = 1900) -> list[str]:
 
 # ── 表示 (Presentation) ──────────────────────────────────────────────────────
 
-def setup(server_path: str, log_msg: deque) -> None:
+def setup(server_path: str) -> None:
     """
     server_path : サーバーディレクトリのパス
-    log_msg     : main.py 側でリアルタイム更新される最新ログのリスト
     """
     log_logger = LogManager.cmd.getChild("logs")
     server_logs_dir = Path(server_path) / "logs"
@@ -92,7 +90,7 @@ def setup(server_path: str, log_msg: deque) -> None:
             await not_enough_permission(interaction, log_logger)
             return
         if filename is None:
-            lines = _trim_to_discord_limit(list(log_msg))
+            lines = _trim_to_discord_limit(LogManager.snapshot_log_msg())
             await interaction.response.send_message("```ansi\n" + "\n".join(lines) + "\n```")
             log_logger.info("sended logs -> Server logs")
             return

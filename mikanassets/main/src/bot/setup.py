@@ -8,7 +8,6 @@ main.py から呼び出すことを想定している。
 from __future__ import annotations
 
 import importlib
-from collections import deque
 
 from bot import text_data as _text_data
 from core.config_types import AppConfig
@@ -47,7 +46,7 @@ async def load_text() -> None:
     ctx.text.send_help = embed
 
 
-def setup_commands(config: AppConfig, log_msg: deque) -> None:
+def setup_commands(config: AppConfig) -> None:
     misc.setup()
     status_cmd.setup(server_name=ctx.server_name, web_port=ctx.web_port)
     server_cmd.setup(server_logger=ctx.server_logger)
@@ -55,7 +54,7 @@ def setup_commands(config: AppConfig, log_msg: deque) -> None:
     terminal_cmd.setup()
     tokengen_cmd.setup()
     ip_cmd.setup()
-    logs_cmd.setup(server_path=str(ctx.server_path), log_msg=log_msg)
+    logs_cmd.setup(server_path=str(ctx.server_path))
     cmd_cmd.setup()
     backup_cmd.setup()
     announce_cmd.setup()

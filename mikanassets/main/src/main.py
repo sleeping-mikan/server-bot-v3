@@ -165,7 +165,7 @@ if config_changed:
 
 # ── コマンド登録・イベント登録・拡張機能ロード ───────────────────────────────
 
-setup_commands(config, LogManager.log_msg)
+setup_commands(config)
 
 # ── Web サーバー起動 ──────────────────────────────────────────────────────────
 
