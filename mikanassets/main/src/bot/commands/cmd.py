@@ -403,6 +403,11 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(file_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
+        if not ctx.enable_advanced_features and is_important_bot_file(file_path):
+            send_discord_logger.error(f"permission denied : {file_path}")
+            embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["permission_denied"].format(file_path), inline=False)
+            await interaction.response.send_message(embed=embed)
+            return
         ok, result = await SendDiscordSelfServer.register_download(str(file_path))
         if ok:
             send_discord_logger.info(f"registered download -> {file_path} (user {interaction.user.id})")
