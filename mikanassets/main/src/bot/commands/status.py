@@ -55,11 +55,17 @@ def setup(server_name: str, web_port: int) -> None:
 
         cpu_server = {server_name: await get_process_cpu()} if not ctx.server_process.is_stopped() else {"NULL": "NULL"}
         send_str   = ["Server"]
-        send_str  += [ctx.text.response_msg["status"]["cpu_value_proc"].format(cpu_server[k], k) for k in cpu_server]
+        send_str  += [
+            ctx.text.response_msg["status"]["cpu_value_proc"].format(round(v, 2) if isinstance(v, float) else v, k)
+            for k, v in cpu_server.items()
+        ]
 
         cpu_self  = await get_thread_cpu_usage(os.getpid(), is_self=True)
         send_str += ["Self"]
-        send_str += [ctx.text.response_msg["status"]["cpu_value_thread"].format(cpu_self[k], k) for k in cpu_self]
+        send_str += [
+            ctx.text.response_msg["status"]["cpu_value_thread"].format(round(v, 2), k)
+            for k, v in cpu_self.items()
+        ]
         embed.add_field(name=ctx.text.response_msg["status"]["cpu_title"], value="\n".join(send_str), inline=False)
         status_logger.info(f"get cpu usage -> {' '.join(send_str)}")
 
