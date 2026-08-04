@@ -15,7 +15,7 @@ class BotPaths:
         更新対象 (mikanassets/main/ 以下が丸ごと入れ替わる):
             main_dir, src_dir, update_apply_file, assets_dir, web_dir 以下
         更新対象外 (ユーザーデータ・設定は保持される):
-            config_file, token_file, logs_dir,
+            config_file, logs_dir,
             mikanassets_dir/data/ 以下 (data_dir, dat_file, web_tokens_file),
             mikanassets_dir/extension/ 以下 (extension_dir)
     """
@@ -28,10 +28,6 @@ class BotPaths:
     @property
     def config_file(self) -> Path:
         return self.base / ".config"
-
-    @property
-    def token_file(self) -> Path:
-        return self.base / ".token"
 
     @property
     def logs_dir(self) -> Path:

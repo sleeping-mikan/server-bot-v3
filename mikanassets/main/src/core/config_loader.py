@@ -71,6 +71,8 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
         cfg["update"]["branch"] = "main"
     elif "ip" not in cfg["allow"]:
         cfg["allow"]["ip"] = True
+    if "discord_token" not in cfg:
+        cfg["discord_token"] = "ここにtokenを入力"
     if "server_path" not in cfg:
         cfg["server_path"] = str(Path(now_path).resolve()) + "/"
     if "server_args" not in cfg:
@@ -102,7 +104,7 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
     if "stdin" not in cfg["discord_commands"]["cmd"]:
         cfg["discord_commands"]["cmd"]["stdin"] = {}
     if "sys_files" not in cfg["discord_commands"]["cmd"]["stdin"]:
-        cfg["discord_commands"]["cmd"]["stdin"]["sys_files"] = [".config", ".token", "logs", "mikanassets"]
+        cfg["discord_commands"]["cmd"]["stdin"]["sys_files"] = [".config", "logs", "mikanassets"]
     if "send_discord" not in cfg["discord_commands"]["cmd"]["stdin"]:
         cfg["discord_commands"]["cmd"]["stdin"]["send_discord"] = {"mode": "selfserver", "bits_capacity": 2 * 1024 * 1024 * 1024}
     if "bits_capacity" not in cfg["discord_commands"]["cmd"]["stdin"]["send_discord"]:
@@ -139,15 +141,7 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
         if "all" not in cfg["log"]:
             cfg["log"]["all"] = False
     if "backup" not in cfg["discord_commands"]:
-        try:
-            server_name = cfg["server_path"].replace("\\", "/").split("/")[-2]
-        except IndexError:
-            print(f"server_path is broken. please check config file and try again.\ninput : {cfg['server_path']}")
-            wait_for_keypress()
-        if server_name == "":
-            print("server_path is broken. please check config file and try again.")
-            wait_for_keypress()
-        backup_path = (Path(cfg["server_path"]) / ".." / "backup" / server_name).resolve()
+        backup_path = (Path(now_path) / "backup").resolve()
         backup_path.mkdir(parents=True, exist_ok=True)
         cfg["discord_commands"]["backup"] = {"path": str(backup_path) + "/"}
     if "web" not in cfg:
@@ -174,12 +168,13 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
     config_path  = base / ".config"
 
     if not config_path.exists():
-        default_backup = (base / ".." / "backup" / base.name).resolve()
+        default_backup = (base / "backup").resolve()
         default_backup.mkdir(parents=True, exist_ok=True)
         print("default backup path: " + str(default_backup))
         config_dict = {
             "allow": {"ip": True},
             "update": {"auto": True, "branch": "main"},
+            "discord_token": "ここにtokenを入力",
             "server_path": str(base) + "/",
             "server_name": "bedrock_server.exe",
             "server_args": "",
@@ -193,7 +188,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
                 },
                 "cmd": {
                     "stdin": {
-                        "sys_files": [".config", ".token", "logs", "mikanassets"],
+                        "sys_files": [".config", "logs", "mikanassets"],
                         "send_discord": {"bits_capacity": 2 * 1024 * 1024 * 1024},
                     },
                     "serverin": {"allow_cmd": ["stop"]},

@@ -398,7 +398,7 @@ def setup() -> None:  # noqa: C901 (多数のサブコマンドのため長い)
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["send-discord"]["file_not_found"].format(file_path), inline=False)
             await interaction.response.send_message(embed=embed)
             return
-        if not is_path_within_scope(file_path) or file_path.name == ".token":
+        if not is_path_within_scope(file_path) or file_path.name == ".config":
             send_discord_logger.error(f"invalid path : {file_path}")
             embed.add_field(name="", value=ctx.text.response_msg["cmd"]["stdin"]["invalid_path"].format(file_path), inline=False)
             await interaction.response.send_message(embed=embed)

@@ -97,6 +97,7 @@ class DiscordCommandsConfig(TypedDict):
 class AppConfig(TypedDict):
     allow:                  AllowConfig
     update:                 UpdateConfig
+    discord_token:          str
     server_path:            str
     server_name:            str
     server_args:            str
