@@ -72,7 +72,7 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
     elif "ip" not in cfg["allow"]:
         cfg["allow"]["ip"] = True
     if "discord_token" not in cfg:
-        cfg["discord_token"] = "ここにtokenを入力"
+        cfg["discord_token"] = ""
     if "server_path" not in cfg:
         cfg["server_path"] = str(Path(now_path).resolve()) + "/"
     if "server_args" not in cfg:
@@ -174,7 +174,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
         config_dict = {
             "allow": {"ip": True},
             "update": {"auto": True, "branch": "main"},
-            "discord_token": "ここにtokenを入力",
+            "discord_token": "",
             "server_path": str(base) + "/",
             "server_name": "bedrock_server.exe",
             "server_args": "",
