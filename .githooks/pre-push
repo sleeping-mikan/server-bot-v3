@@ -1,0 +1,58 @@
+#!/bin/sh
+# pre-push: push先ブランチの現在のバージョンと、これから push するコミットの
+# バージョン (mikanassets/main/src/core/version.py の __version__) が同じ場合、push を拒否する。
+#
+# バージョン付番ルール (MAJOR.MINOR.PATCH):
+#   MAJOR: 固定
+#   MINOR: 大きな変更 (コマンド追加・コンフィグ構造の変更を含む変更など)
+#   PATCH: 軽微な変更 (コマンドのバグ修正・extension用関数の追加・
+#          既存コマンドの機能拡張など、使用感が変わらない変更)
+#
+# このディレクトリを有効にするには (クローン直後は自動では有効にならない):
+#   git config core.hooksPath .githooks
+
+VERSION_FILE="mikanassets/main/src/core/version.py"
+ZERO_SHA="0000000000000000000000000000000000000000"
+
+extract_version() {
+    sed -n 's/^__version__ = "\(.*\)"/\1/p'
+}
+
+status=0
+
+while read -r local_ref local_sha remote_ref remote_sha; do
+    case "$remote_ref" in
+        refs/heads/*) ;;
+        *) continue ;;  # タグ等はチェック対象外
+    esac
+    [ "$local_sha" = "$ZERO_SHA" ] && continue  # ブランチ削除は対象外
+
+    new_version=$(git show "${local_sha}:${VERSION_FILE}" 2>/dev/null | extract_version)
+    if [ -z "$new_version" ]; then
+        echo "pre-push: ${VERSION_FILE} から __version__ を取得できませんでした (push先: ${remote_ref})" >&2
+        status=1
+        continue
+    fi
+
+    if [ "$remote_sha" = "$ZERO_SHA" ]; then
+        continue  # リモートに同名ブランチがまだ無い(新規ブランチ push) -> 比較対象なしでスキップ
+    fi
+
+    old_version=$(git show "${remote_sha}:${VERSION_FILE}" 2>/dev/null | extract_version)
+
+    if [ -n "$old_version" ] && [ "$old_version" = "$new_version" ]; then
+        branch_name=${remote_ref#refs/heads/}
+        echo "" >&2
+        echo "push を拒否しました: '${branch_name}' の __version__ (${new_version}) が変わっていません。" >&2
+        echo "${VERSION_FILE} の __version__ を更新してから再度 push してください。" >&2
+        echo "" >&2
+        echo "  MAJOR.MINOR.PATCH (現在: ${old_version})" >&2
+        echo "    MAJOR: 固定" >&2
+        echo "    MINOR: 大きな変更 (コマンド追加・コンフィグ構造の変更を含む変更など)" >&2
+        echo "    PATCH: 軽微な変更 (バグ修正・extension用関数の追加・既存コマンドの機能拡張など)" >&2
+        echo "" >&2
+        status=1
+    fi
+done
+
+exit $status
