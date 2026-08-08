@@ -27,6 +27,7 @@ class WebConfig(TypedDict):
     secret_key: str
     port: int
     use_front_page: bool
+    public_url: str | None
 
 
 # ── discord_commands 以下 ─────────────────────────────────────────────────────

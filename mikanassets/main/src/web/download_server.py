@@ -19,6 +19,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import StreamingResponse
 
 from core.state import ctx
+from core.web_url import get_web_base_url
 
 # "web" ロガーは LogManager.init() 後に親として設定される
 _logger = _logging.getLogger("web.download")
@@ -54,7 +55,7 @@ class SendDiscordSelfServer:
         async with cls._lock:
             cls._download_registry[token] = (path, expire_at)
         _logger.info(f"register download -> {path} ({dir_size} Bytes)")
-        return True, f"http://{ctx.web_ip}:{ctx.web_port}/download/{token}"
+        return True, f"{get_web_base_url()}/download/{token}"
 
     @classmethod
     async def _cleanup_loop(cls) -> None:

@@ -145,13 +145,15 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
         backup_path.mkdir(parents=True, exist_ok=True)
         cfg["discord_commands"]["backup"] = {"path": str(backup_path) + "/"}
     if "web" not in cfg:
-        cfg["web"] = {"secret_key": "YOURSECRETKEY", "port": 80, "use_front_page": True}
+        cfg["web"] = {"secret_key": "YOURSECRETKEY", "port": 80, "use_front_page": True, "public_url": None}
     if "port" not in cfg["web"]:
         cfg["web"]["port"] = 80
     if "secret_key" not in cfg["web"]:
         cfg["web"]["secret_key"] = "YOURSECRETKEY"
     if "use_front_page" not in cfg["web"]:
         cfg["web"]["use_front_page"] = True
+    if "public_url" not in cfg["web"]:
+        cfg["web"]["public_url"] = None
     if "enable_advanced_features" not in cfg:
         cfg["enable_advanced_features"] = False
     # v2.0.0 まで admin.members は list だった (権限レベルは現在の 1 相当)
@@ -180,7 +182,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
             "server_args": "",
             "server_char_encoding": "utf-8",
             "log": {"server": True, "all": False},
-            "web": {"secret_key": "YOURSECRETKEY", "port": 80, "use_front_page": True},
+            "web": {"secret_key": "YOURSECRETKEY", "port": 80, "use_front_page": True, "public_url": None},
             "discord_commands": {
                 "permission": {"commands_level": INITIAL_COMMAND_PERMISSION},
                 "ip": {

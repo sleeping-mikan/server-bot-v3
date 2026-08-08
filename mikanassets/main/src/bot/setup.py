@@ -28,6 +28,7 @@ from bot.embeds import ModifiedEmbeds
 from bot.extensions import load as load_extensions
 from core.config_types import AppConfig
 from core.state import ctx
+from core.web_url import get_web_base_url
 
 
 async def load_text() -> None:
@@ -40,7 +41,7 @@ async def load_text() -> None:
     ) = _text_data.load_text_data(ctx.text.lang)
     # コマンドの説明はスラッシュコマンドUIとドキュメントサイトに任せ、
     # /help は環境固有情報 (docsリンク + web URL) のみを返す
-    send_help_initial += f"web : http://{ctx.web_ip}:{ctx.web_port}\n"
+    send_help_initial += f"web : {get_web_base_url()}\n"
     embed = ModifiedEmbeds.DefaultEmbed(title="How to use this bot")
     embed.add_field(name="", value=send_help_initial, inline=False)
     ctx.text.send_help = embed
