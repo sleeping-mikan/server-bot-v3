@@ -12,9 +12,9 @@ from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
+from bot.utils import not_enough_permission, print_user, user_permission
 from core.log_setup import LogManager
 from core.state import ctx
-from bot.utils import not_enough_permission, print_user, user_permission
 
 
 def _generate_token() -> str:

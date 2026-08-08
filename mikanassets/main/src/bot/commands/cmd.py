@@ -28,20 +28,18 @@ import discord
 from discord import app_commands
 
 from bot.client import tree
-from web.download_server import SendDiscordSelfServer
 from bot.embeds import ModifiedEmbeds
-from core.log_setup import LogManager
-from core.path_utils import is_entry_file, is_important_bot_file, is_path_within_scope
-from core.state import ctx
-from core.zip_utils import safe_unzip
 from bot.utils import (
     is_running_server,
-    is_stopped_server,
     not_enough_permission,
     print_user,
     user_permission,
 )
-
+from core.log_setup import LogManager
+from core.path_utils import is_entry_file, is_important_bot_file, is_path_within_scope
+from core.state import ctx
+from core.zip_utils import safe_unzip
+from web.download_server import SendDiscordSelfServer
 
 # ── 実装 (Implementation) ────────────────────────────────────────────────────
 

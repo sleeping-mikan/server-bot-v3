@@ -12,7 +12,7 @@ import discord
 
 from bot.client import client, tree
 from bot.embeds import ModifiedEmbeds
-from bot.utils import is_running_server, is_stopped_server, not_enough_permission, print_user, user_permission
+from bot.utils import not_enough_permission, print_user, user_permission
 from core.log_setup import LogManager
 from core.state import ctx
 from server.control import StartResult, StopResult, start_server, stop_server

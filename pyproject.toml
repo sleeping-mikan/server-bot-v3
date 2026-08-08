@@ -1,0 +1,37 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+extend-exclude = [
+    "mikanassets/extension",
+    "versions",
+    "libraries",
+    "world",
+]
+
+[tool.ruff.lint]
+select = [
+    "E",   # pycodestyle
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+]
+ignore = [
+    "E501",  # 行長は line-length ではなく可読性優先の既存コードが多いため警告止まりにする
+]
+
+[tool.ruff.lint.isort]
+combine-as-imports = true  # `as` を含む import を1つずつ分割させない (bot/setup.py の集約importを壊さない)
+# mikanassets/main/src 以下の自前パッケージ。未指定だと自動判定がファイルによってブレて
+# サードパーティ import と同じグループに混ざることがあるため明示する。
+known-first-party = ["bot", "core", "server", "update", "web"]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["E501"]
+# main.py は起動シーケンス上、設定/ロガー初期化を挟みながら段階的に import する設計
+# (core/state.py の docstring 参照)。トップレベルへの並び替えは初期化順序を壊すため対象外にする。
+"mikanassets/main/src/main.py" = ["E402"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["mikanassets/main/src"]

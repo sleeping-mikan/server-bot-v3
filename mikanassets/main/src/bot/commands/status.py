@@ -10,16 +10,16 @@ import discord
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
+from bot.utils import not_enough_permission, print_user, user_permission
 from core.log_setup import LogManager
 from core.state import ctx
+from core.version import get_version
 from server.system_info import (
     check_response,
     get_process_cpu,
     get_process_memory,
     get_thread_cpu_usage,
 )
-from bot.utils import not_enough_permission, print_user, user_permission
-from core.version import get_version
 
 
 def setup(server_name: str, web_port: int) -> None:

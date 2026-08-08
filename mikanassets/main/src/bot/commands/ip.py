@@ -18,15 +18,14 @@ setup() 内の @tree.command ハンドラ
 
 from __future__ import annotations
 
-import requests
 import discord
+import requests
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
+from bot.utils import not_enough_permission, print_user, user_permission
 from core.log_setup import LogManager
 from core.state import ctx
-from bot.utils import not_enough_permission, print_user, user_permission
-
 
 # ── 実装 (Implementation) ────────────────────────────────────────────────────
 

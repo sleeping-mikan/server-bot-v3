@@ -15,10 +15,10 @@ ProgressCallback   : (copied_files, total_files, copied_bytes, total_bytes) → 
 from __future__ import annotations
 
 import asyncio
+from collections.abc import Awaitable, Callable
 from datetime import datetime
 from pathlib import Path
 from shutil import Error, copy2, copystat
-from typing import Awaitable, Callable
 
 from core.state import ctx
 

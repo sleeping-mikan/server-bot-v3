@@ -7,7 +7,6 @@ make_config() の返り値、AppState.config、各モジュールの引数注釈
 
 from typing import TypedDict
 
-
 # ── トップレベルのサブ設定 ────────────────────────────────────────────────────
 
 class AllowConfig(TypedDict):

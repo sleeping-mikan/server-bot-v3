@@ -9,9 +9,9 @@ from __future__ import annotations
 
 import logging
 
+import uvicorn
 from fastapi.middleware.wsgi import WSGIMiddleware
 from flask import Flask, request, session
-import uvicorn
 
 from core.log_setup import LogManager
 from core.state import ctx

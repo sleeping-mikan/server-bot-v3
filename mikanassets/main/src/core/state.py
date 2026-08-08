@@ -23,7 +23,6 @@ from core.config_types import AppConfig
 from core.paths import BotPaths
 from server.process import ServerProcess
 
-
 # ── サブデータクラス ──────────────────────────────────────────────────────────
 
 @dataclass

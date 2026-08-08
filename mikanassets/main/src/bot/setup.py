@@ -10,7 +10,6 @@ from __future__ import annotations
 import importlib
 
 from bot import text_data as _text_data
-from core.config_types import AppConfig
 from bot.commands import (
     announce as announce_cmd,
     backup as backup_cmd,
@@ -27,6 +26,7 @@ from bot.commands import (
 )
 from bot.embeds import ModifiedEmbeds
 from bot.extensions import load as load_extensions
+from core.config_types import AppConfig
 from core.state import ctx
 
 

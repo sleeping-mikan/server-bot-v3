@@ -13,7 +13,6 @@ from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
-from core.path_utils import backup_would_overwrite_important_files, is_important_bot_file, is_path_within_scope
 from bot.utils import (
     is_running_server,
     not_enough_permission,
@@ -21,6 +20,7 @@ from bot.utils import (
     user_permission,
 )
 from core.log_setup import LogManager
+from core.path_utils import backup_would_overwrite_important_files, is_important_bot_file, is_path_within_scope
 from core.state import ctx
 from server.backup import ProgressCallback, apply_backup, create_backup
 

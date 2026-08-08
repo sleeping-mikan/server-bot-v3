@@ -25,15 +25,14 @@ Python はスクリプトの実行開始時点で既にソースを読み込み�
 環境変数 MIKAN_BOT_TOKEN に完了報告メッセージ編集用の Bot トークンを渡す。
 """
 
-import os
-import sys
-import shutil
-import subprocess
-import time
 import json
 import logging
+import os
+import shutil
+import subprocess
+import sys
+import time
 import traceback
-
 
 # 本体 (log_setup.py) の ColoredFormatter / PlainFormatter に合わせた書式を再現する。
 # update/apply.py は単体スクリプトのため core モジュールを使わず直接定義する。

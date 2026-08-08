@@ -7,8 +7,8 @@ Discord ハンドラは bot/commands/server.py から呼び出す。
 
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import Enum, auto
-from typing import Callable
 
 from core.state import ctx
 

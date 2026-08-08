@@ -19,7 +19,7 @@ tail 開始時点でソースが空だった場合は LogTailerEmptyError を送
 from __future__ import annotations
 
 import asyncio
-from typing import AsyncIterator, Callable, Sequence
+from collections.abc import AsyncIterator, Callable, Sequence
 
 from core.log_setup import LogManager
 

@@ -31,6 +31,7 @@ except ImportError:
 # ── 起動時定数 ────────────────────────────────────────────────────────────────
 
 from datetime import datetime
+
 start_time = datetime.now().strftime("%Y-%m-%d_%H_%M_%S")
 
 now_path = os.environ.get("MIKAN_BASE_DIR") or os.path.dirname(os.path.abspath(__file__))
@@ -40,9 +41,9 @@ now_path = os.path.abspath(now_path)
 
 from pathlib import Path
 
-from core.config_loader import wait_for_keypress, make_config
-from core.state import ctx
 from bot.commands import INITIAL_COMMAND_PERMISSION
+from core.config_loader import make_config, wait_for_keypress
+from core.state import ctx
 
 ctx.init_paths(now_path)
 
@@ -133,6 +134,7 @@ if config.get("update", {}).get("auto"):
 # ── 公開 IP 取得 (起動時 1 回のみ) ──────────────────────────────────────────
 
 import requests as _requests
+
 try:
     ctx.web_ip = _requests.get("https://api.ipify.org", timeout=10).text
 except Exception:
@@ -150,6 +152,7 @@ LogManager.sys.info("text data loaded")
 # ── server stdout リーダーを ctx に格納 ───────────────────────────────────────
 
 from server.stdout import make_reader
+
 ctx.server_logger = make_reader(log["server"])
 
 # ── 起動ログ ──────────────────────────────────────────────────────────────────
@@ -166,13 +169,16 @@ setup_commands(config)
 # ── Web サーバー起動 ──────────────────────────────────────────────────────────
 
 from web.app import run_webservice_server
+
 web_thread = threading.Thread(target=run_webservice_server, daemon=True, name="web_thread")
 web_thread.start()
 
 # ── Discord Bot 起動 ──────────────────────────────────────────────────────────
 
-from bot.client import client
 import discord as _discord
+
+from bot.client import client
+
 try:
     client.run(ctx.token, log_formatter=LogManager.console_formatter)
 except _discord.errors.LoginFailure:

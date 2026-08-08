@@ -16,9 +16,9 @@ import logging
 import os
 import shutil
 import sys
-import zipfile
-import urllib.request
 import urllib.error
+import urllib.request
+import zipfile
 
 # ------------------------------------------------------------------
 # ロガー設定

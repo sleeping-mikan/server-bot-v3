@@ -12,15 +12,14 @@ setup() 蜀・・ @tree.command 繝上Φ繝峨Λ
 
 from __future__ import annotations
 
-from discord import app_commands
 import discord
+from discord import app_commands
 
 from bot.client import tree
 from bot.embeds import ModifiedEmbeds
+from bot.utils import not_enough_permission, print_user, rewrite_config, user_permission
 from core.log_setup import LogManager
 from core.state import ctx
-from bot.utils import not_enough_permission, print_user, rewrite_config, user_permission
-
 
 # 笏笏 螳溯｣・(Implementation) 笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏笏
 

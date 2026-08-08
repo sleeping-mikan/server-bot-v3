@@ -10,14 +10,14 @@ import discord
 
 from bot.client import shutdown, tree
 from bot.embeds import ModifiedEmbeds
-from core.log_setup import LogManager
-from core.state import ctx
 from bot.utils import (
     is_running_server,
     not_enough_permission,
     print_user,
     user_permission,
 )
+from core.log_setup import LogManager
+from core.state import ctx
 
 
 def setup() -> None:
