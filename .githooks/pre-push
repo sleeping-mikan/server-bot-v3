@@ -42,15 +42,14 @@ while read -r local_ref local_sha remote_ref remote_sha; do
 
     if [ -n "$old_version" ] && [ "$old_version" = "$new_version" ]; then
         branch_name=${remote_ref#refs/heads/}
-        echo "" >&2
-        echo "push を拒否しました: '${branch_name}' の __version__ (${new_version}) が変わっていません。" >&2
-        echo "${VERSION_FILE} の __version__ を更新してから再度 push してください。" >&2
+        # 1行目に要点を出す: VSCode等のGitクライアントは通知(トースト)に
+        # stderrの最初の1行だけを使うことが多く、先頭が空行だと通知が空になるため。
+        echo "push rejected: '${branch_name}' の __version__ (${new_version}) が変わっていません。${VERSION_FILE} を更新してください。" >&2
         echo "" >&2
         echo "  MAJOR.MINOR.PATCH (現在: ${old_version})" >&2
         echo "    MAJOR: 固定" >&2
         echo "    MINOR: 大きな変更 (コマンド追加・コンフィグ構造の変更を含む変更など)" >&2
         echo "    PATCH: 軽微な変更 (バグ修正・extension用関数の追加・既存コマンドの機能拡張など)" >&2
-        echo "" >&2
         status=1
     fi
 done
