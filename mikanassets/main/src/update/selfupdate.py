@@ -31,18 +31,20 @@ _REPOSITORY = {
     "name": "server-bot-v3",
 }
 
+# .config の update.branch が存在しない場合や config 未読込時に使う、常に存在する前提のブランチ。
+_FALLBACK_BRANCH = "release"
+
 # LogManager.init() 後にこのモジュールがインポートされることを前提にする
 _update_logger  = logging.getLogger("update")
 _replace_logger = logging.getLogger("update.replace")
 _sys_logger     = logging.getLogger("sys")
 
 
-def get_self_commit_id() -> tuple[str | None, str]:
-    """リポジトリ HEAD の最新コミット SHA を GitHub API で取得する。
+def _get_commit_id_for_branch(branch: str) -> tuple[str | None, str]:
+    """指定ブランチ HEAD の最新コミット SHA を GitHub API で取得する。
 
     戻り値: (コミット SHA, エラー理由)。成功時は理由が空文字列になる。
     """
-    branch = ctx.config["update"]["branch"] if ctx.config else "main"
     url = (
         f'https://api.github.com/repos/{_REPOSITORY["user"]}'
         f'/{_REPOSITORY["name"]}/commits/{branch}'
@@ -57,6 +59,37 @@ def get_self_commit_id() -> tuple[str | None, str]:
             return None, f"branch '{branch}' not found. check 'update.branch' in .config"
         return None, f"github api error. (status code: {response.status_code})"
     return response.json()["sha"], ""
+
+
+def resolve_update_branch() -> tuple[str, str | None, str]:
+    """.config の update.branch を確認し、実際に使うブランチとそのコミットを決定する。
+
+    指定ブランチが GitHub 上に存在しない(422)場合は _FALLBACK_BRANCH にフォールバックする。
+    コミット取得そのものが失敗した場合(ネットワークエラー等)はフォールバックせずそのまま返す
+    (フォールバックしても同じ理由で失敗する可能性が高いため)。
+
+    戻り値: (実際に使ったブランチ名, コミット SHA (失敗時 None), エラー理由 (成功時は空文字列))
+    """
+    branch = ctx.config["update"]["branch"] if ctx.config else _FALLBACK_BRANCH
+    commit, error = _get_commit_id_for_branch(branch)
+    if commit is not None or branch == _FALLBACK_BRANCH:
+        return branch, commit, error
+    if "not found" not in error:
+        return branch, commit, error
+    _update_logger.warning(
+        f"update.branch '{branch}' not found on GitHub. falling back to '{_FALLBACK_BRANCH}'."
+    )
+    commit, error = _get_commit_id_for_branch(_FALLBACK_BRANCH)
+    return _FALLBACK_BRANCH, commit, error
+
+
+def get_self_commit_id() -> tuple[str | None, str]:
+    """.config の update.branch (フォールバック込み) の最新コミット SHA を取得する。
+
+    戻り値: (コミット SHA, エラー理由)。成功時は理由が空文字列になる。
+    """
+    _, commit, error = resolve_update_branch()
+    return commit, error
 
 
 def save_mikanassets_dat() -> None:
@@ -95,7 +128,7 @@ async def update_self_if_commit_changed(
         _update_logger.error("json load error (mikanassets/.dat). delete file.")
         return
 
-    github_commit, error_reason = get_self_commit_id()
+    branch, github_commit, error_reason = resolve_update_branch()
     if github_commit is None:
         _update_logger.error(
             "github commit is None. (github api error. check network / repository settings)"
@@ -130,7 +163,9 @@ async def update_self_if_commit_changed(
 
     _update_logger.info("commit changed. update self.")
 
-    branch = ctx.config["update"]["branch"] if ctx.config else "main"
+    # branch は上の resolve_update_branch() で実際に見つかったブランチ
+    # (.config の指定が無効ならここまでに release へフォールバック済み)。
+    # ここで .config の値を読み直すとコミット確認とzip取得のブランチがずれるため使わない。
     zip_url = (
         f'https://github.com/{_REPOSITORY["user"]}'
         f'/{_REPOSITORY["name"]}/archive/refs/heads/{branch}.zip'

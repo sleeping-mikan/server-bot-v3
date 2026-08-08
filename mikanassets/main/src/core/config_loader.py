@@ -68,7 +68,7 @@ def _fill_config_defaults(cfg: dict, now_path: str, INITIAL_COMMAND_PERMISSION: 
     if "auto" not in cfg["update"]:
         cfg["update"]["auto"] = True
     if "branch" not in cfg["update"]:
-        cfg["update"]["branch"] = "main"
+        cfg["update"]["branch"] = "release"
     elif "ip" not in cfg["allow"]:
         cfg["allow"]["ip"] = True
     if "discord_token" not in cfg:
@@ -173,7 +173,7 @@ def make_config(now_path: str, INITIAL_COMMAND_PERMISSION: dict) -> tuple[AppCon
         print("default backup path: " + str(default_backup))
         config_dict = {
             "allow": {"ip": True},
-            "update": {"auto": True, "branch": "main"},
+            "update": {"auto": True, "branch": "release"},
             "discord_token": "",
             "server_path": str(base) + "/",
             "server_name": "bedrock_server.exe",

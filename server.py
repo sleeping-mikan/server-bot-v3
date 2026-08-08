@@ -61,7 +61,7 @@ _logger.addHandler(_handler)
 # TODO: リポジトリを公開したら、ここを実際の owner/repo に書き換えてください。
 GITHUB_OWNER  = "sleeping-mikan"
 GITHUB_REPO   = "server-bot-v3"
-GITHUB_BRANCH = "main"
+GITHUB_BRANCH = "release"
 
 # 上記から自動生成される、ブランチのzipballURL
 GITHUB_ZIP_URL = f"https://github.com/{GITHUB_OWNER}/{GITHUB_REPO}/archive/refs/heads/{GITHUB_BRANCH}.zip"
