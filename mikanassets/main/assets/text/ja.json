@@ -254,7 +254,11 @@
       "different": "ファイルidが異なるため更新を行います",
       "download_failed": "更新のダウンロードに失敗しました",
       "replace": "ch_id {}\nmsg_id {}",
-      "force": "forceオプションが指定されたため、ファイルidに関わらず更新を行います。"
+      "force": "forceオプションが指定されたため、ファイルidに関わらず更新を行います。",
+      "branch_not_found": "ブランチ'{}'が見つかりません。.configのupdate.branchを確認してください",
+      "github_api_error": "GitHub APIエラーが発生しました(ステータスコード: {})",
+      "github_response_error": "GitHubからの応答でエラーが発生しました",
+      "unexpected_zip_structure": "ダウンロードしたzipの構造が想定と異なります"
     },
     "announce": {
       "embed": {

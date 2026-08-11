@@ -40,10 +40,14 @@ _replace_logger = logging.getLogger("update.replace")
 _sys_logger     = logging.getLogger("sys")
 
 
-def _get_commit_id_for_branch(branch: str) -> tuple[str | None, str]:
+def _get_commit_id_for_branch(branch: str) -> tuple[str | None, str, str]:
     """指定ブランチ HEAD の最新コミット SHA を GitHub API で取得する。
 
-    戻り値: (コミット SHA, エラー理由)。成功時は理由が空文字列になる。
+    戻り値: (コミット SHA, エラー種別, 詳細(ログ用の生の英語文字列))。
+    エラー種別は text_pack (assets/text/*.json の response_msg.update) のキー名と対応させる:
+      "" (成功) / "branch_not_found" / "github_api_error"
+    Discord に表示する文言は呼び出し側が text_pack を使って言語ごとに組み立てるため、
+    ここでは(ログ用途以外の)整形済み英語メッセージは作らない。
     """
     url = (
         f'https://api.github.com/repos/{_REPOSITORY["user"]}'
@@ -56,40 +60,38 @@ def _get_commit_id_for_branch(branch: str) -> tuple[str | None, str]:
         _sys_logger.error(f"response body: {response.text}")
         # 422 はブランチ(ref)が存在しない場合に返される
         if response.status_code == 422:
-            return None, f"branch '{branch}' not found. check 'update.branch' in .config"
-        return None, f"github api error. (status code: {response.status_code})"
-    return response.json()["sha"], ""
+            return None, "branch_not_found", branch
+        return None, "github_api_error", str(response.status_code)
+    return response.json()["sha"], "", ""
 
 
-def resolve_update_branch() -> tuple[str, str | None, str]:
+def resolve_update_branch() -> tuple[str, str | None, str, str]:
     """.config の update.branch を確認し、実際に使うブランチとそのコミットを決定する。
 
-    指定ブランチが GitHub 上に存在しない(422)場合は _FALLBACK_BRANCH にフォールバックする。
+    指定ブランチが GitHub 上に存在しない場合は _FALLBACK_BRANCH にフォールバックする。
     コミット取得そのものが失敗した場合(ネットワークエラー等)はフォールバックせずそのまま返す
     (フォールバックしても同じ理由で失敗する可能性が高いため)。
 
-    戻り値: (実際に使ったブランチ名, コミット SHA (失敗時 None), エラー理由 (成功時は空文字列))
+    戻り値: (実際に使ったブランチ名, コミット SHA (失敗時 None), エラー種別, 詳細)
     """
     branch = ctx.config["update"]["branch"] if ctx.config else _FALLBACK_BRANCH
-    commit, error = _get_commit_id_for_branch(branch)
-    if commit is not None or branch == _FALLBACK_BRANCH:
-        return branch, commit, error
-    if "not found" not in error:
-        return branch, commit, error
+    commit, error_kind, detail = _get_commit_id_for_branch(branch)
+    if commit is not None or branch == _FALLBACK_BRANCH or error_kind != "branch_not_found":
+        return branch, commit, error_kind, detail
     _update_logger.warning(
         f"update.branch '{branch}' not found on GitHub. falling back to '{_FALLBACK_BRANCH}'."
     )
-    commit, error = _get_commit_id_for_branch(_FALLBACK_BRANCH)
-    return _FALLBACK_BRANCH, commit, error
+    commit, error_kind, detail = _get_commit_id_for_branch(_FALLBACK_BRANCH)
+    return _FALLBACK_BRANCH, commit, error_kind, detail
 
 
 def get_self_commit_id() -> tuple[str | None, str]:
     """.config の update.branch (フォールバック込み) の最新コミット SHA を取得する。
 
-    戻り値: (コミット SHA, エラー理由)。成功時は理由が空文字列になる。
+    戻り値: (コミット SHA, エラー種別)。成功時は種別が空文字列になる。
     """
-    _, commit, error = resolve_update_branch()
-    return commit, error
+    _, commit, error_kind, _ = resolve_update_branch()
+    return commit, error_kind
 
 
 def save_mikanassets_dat() -> None:
@@ -128,13 +130,19 @@ async def update_self_if_commit_changed(
         _update_logger.error("json load error (mikanassets/.dat). delete file.")
         return
 
-    branch, github_commit, error_reason = resolve_update_branch()
+    branch, github_commit, error_kind, error_detail = resolve_update_branch()
     if github_commit is None:
         _update_logger.error(
-            "github commit is None. (github api error. check network / repository settings)"
+            f"github commit is None. kind={error_kind or 'unknown'} detail={error_detail}"
         )
         if interaction is not None and embed is not None:
-            embed.add_field(name="error", value=error_reason or "github response error.", inline=False)
+            if error_kind == "branch_not_found":
+                message = text_pack["branch_not_found"].format(error_detail)
+            elif error_kind == "github_api_error":
+                message = text_pack["github_api_error"].format(error_detail)
+            else:
+                message = text_pack["github_response_error"]
+            embed.add_field(name="error", value=message, inline=False)
             await sender(interaction=interaction, embed=embed)
         return
 
@@ -175,7 +183,7 @@ async def update_self_if_commit_changed(
         _sys_logger.error(f"response error. status_code : {response.status_code}")
         _sys_logger.error(f"request url: {zip_url}")
         if interaction is not None and embed is not None:
-            embed.add_field(name="error : github zip download error", value="", inline=False)
+            embed.add_field(name="error", value=text_pack["download_failed"], inline=False)
             await sender(interaction=interaction, embed=embed)
         return
 
@@ -191,7 +199,7 @@ async def update_self_if_commit_changed(
     if len(extracted_items) != 1:
         _sys_logger.error(f"unexpected zip structure: {extracted_items}")
         if interaction is not None and embed is not None:
-            embed.add_field(name="error : unexpected zip structure", value="", inline=False)
+            embed.add_field(name="error", value=text_pack["unexpected_zip_structure"], inline=False)
             await sender(interaction=interaction, embed=embed)
         return
 

@@ -2,6 +2,10 @@
 
 .config の update.branch が GitHub 上に存在しない場合、release ブランチへ
 フォールバックする挙動を確認する。GitHub API へは requests.get をモックして到達しない。
+
+戻り値は (実際に使ったブランチ名, コミットSHA, エラー種別, 詳細) の4要素タプル。
+エラー種別は assets/text/*.json の response_msg.update のキー名と対応する
+("" / "branch_not_found" / "github_api_error")。
 """
 
 from __future__ import annotations
@@ -37,9 +41,9 @@ def test_resolve_update_branch_uses_configured_branch_when_found(monkeypatch):
 
     monkeypatch.setattr(selfupdate.requests, "get", fake_get)
 
-    branch, commit, error = selfupdate.resolve_update_branch()
+    branch, commit, error_kind, detail = selfupdate.resolve_update_branch()
 
-    assert (branch, commit, error) == ("beta", "abc123", "")
+    assert (branch, commit, error_kind, detail) == ("beta", "abc123", "", "")
     assert requested_urls == [
         "https://api.github.com/repos/sleeping-mikan/server-bot-v3/commits/beta"
     ]
@@ -58,9 +62,9 @@ def test_resolve_update_branch_falls_back_to_release_when_branch_missing(monkeyp
 
     monkeypatch.setattr(selfupdate.requests, "get", fake_get)
 
-    branch, commit, error = selfupdate.resolve_update_branch()
+    branch, commit, error_kind, detail = selfupdate.resolve_update_branch()
 
-    assert (branch, commit, error) == ("release", "release-sha", "")
+    assert (branch, commit, error_kind, detail) == ("release", "release-sha", "", "")
     assert len(requested_urls) == 2  # 元のブランチ + release の2回だけ問い合わせる
 
 
@@ -72,10 +76,12 @@ def test_resolve_update_branch_does_not_loop_when_release_itself_missing(monkeyp
 
     monkeypatch.setattr(selfupdate.requests, "get", fake_get)
 
-    branch, commit, error = selfupdate.resolve_update_branch()
+    branch, commit, error_kind, detail = selfupdate.resolve_update_branch()
 
     assert branch == "release"
     assert commit is None
+    assert error_kind == "branch_not_found"
+    assert detail == "release"
 
 
 def test_resolve_update_branch_does_not_fall_back_on_non_branch_errors(monkeypatch):
@@ -90,10 +96,12 @@ def test_resolve_update_branch_does_not_fall_back_on_non_branch_errors(monkeypat
 
     monkeypatch.setattr(selfupdate.requests, "get", fake_get)
 
-    branch, commit, error = selfupdate.resolve_update_branch()
+    branch, commit, error_kind, detail = selfupdate.resolve_update_branch()
 
     assert branch == "beta"
     assert commit is None
+    assert error_kind == "github_api_error"
+    assert detail == "500"
     assert len(requested_urls) == 1
 
 
@@ -107,9 +115,9 @@ def test_resolve_update_branch_uses_fallback_when_config_missing(monkeypatch):
 
     monkeypatch.setattr(selfupdate.requests, "get", fake_get)
 
-    branch, commit, error = selfupdate.resolve_update_branch()
+    branch, commit, error_kind, detail = selfupdate.resolve_update_branch()
 
-    assert (branch, commit, error) == ("release", "release-sha", "")
+    assert (branch, commit, error_kind, detail) == ("release", "release-sha", "", "")
     assert requested_urls == [
         "https://api.github.com/repos/sleeping-mikan/server-bot-v3/commits/release"
     ]

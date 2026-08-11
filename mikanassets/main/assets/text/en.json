@@ -254,7 +254,11 @@
       "different": "The file id is different to update",
       "download_failed": "Download failed",
       "replace": "ch_id {}\nmsg_id {}",
-      "force": "update server.py because force option is true"
+      "force": "update server.py because force option is true",
+      "branch_not_found": "Branch '{}' not found. Check 'update.branch' in .config",
+      "github_api_error": "A GitHub API error occurred (status code: {})",
+      "github_response_error": "An error occurred in the response from GitHub",
+      "unexpected_zip_structure": "Unexpected zip structure in the downloaded file"
     },
     "announce": {
       "embed": {
