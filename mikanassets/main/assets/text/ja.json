@@ -40,7 +40,10 @@
     "announce": {
       "embed": "discordにテキストをembedで送信します。引数にはmd形式のテキストファイルを指定するか、文字列を指定します。"
     },
-    "status": "プロセスの状態を表示します。"
+    "status": "プロセスの状態を表示します。",
+    "web": {
+      "url": "Webコンソールへのアクセス用URLを表示します。"
+    }
   },
   "command_args_description": {
     "cmd": {
@@ -278,6 +281,7 @@
       "cpu_value_proc": "**{}%** Process {}",
       "online_title": "オンライン状態",
       "online_value": "{} Main Server\n{} Uvicorn Server\n{} Bot",
+      "web_title": "Web",
       "base_title": "基本情報",
       "base_value": "OS：**{}**\nPython：**{}**\nBot Version：**{}**"
     }

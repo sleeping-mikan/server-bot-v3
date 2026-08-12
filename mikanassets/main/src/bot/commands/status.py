@@ -14,6 +14,7 @@ from bot.utils import not_enough_permission, print_user, user_permission
 from core.log_setup import LogManager
 from core.state import ctx
 from core.version import get_version
+from core.web_url import get_web_base_url
 from server.system_info import (
     check_response,
     get_process_cpu,
@@ -51,6 +52,12 @@ def setup(server_name: str, web_port: int) -> None:
         embed.add_field(
             name=ctx.text.response_msg["status"]["online_title"],
             value=ctx.text.response_msg["status"]["online_value"].format(is_server_online, is_waitress_online, "🟢"),
+        )
+
+        embed.add_field(
+            name=ctx.text.response_msg["status"]["web_title"],
+            value=get_web_base_url(),
+            inline=False,
         )
 
         cpu_server = {server_name: await get_process_cpu()} if not ctx.server_process.is_stopped() else {"NULL": "NULL"}

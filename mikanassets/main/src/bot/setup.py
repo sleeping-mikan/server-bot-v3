@@ -23,6 +23,7 @@ from bot.commands import (
     terminal as terminal_cmd,
     tokengen as tokengen_cmd,
     update as update_cmd,
+    web as web_cmd,
 )
 from bot.embeds import ModifiedEmbeds
 from bot.extensions import load as load_extensions
@@ -60,6 +61,7 @@ def setup_commands(config: AppConfig) -> None:
     backup_cmd.setup()
     announce_cmd.setup()
     update_cmd.setup()
+    web_cmd.setup()
 
     importlib.import_module("bot.events")
     load_extensions()

@@ -40,7 +40,10 @@
     "announce": {
       "embed": "Send text to discord with embed. Specify a md-formatted text file or a string as an argument."
     },
-    "status": "Display the status of the process."
+    "status": "Display the status of the process.",
+    "web": {
+      "url": "Show the URL to access the web console."
+    }
   },
   "command_args_description": {
     "cmd": {
@@ -278,6 +281,7 @@
       "cpu_value_proc": "**{}%** Process {}",
       "online_title": "Online Status",
       "online_value": "{} Main Server\n{} Uvicorn Server\n{} Bot",
+      "web_title": "Web",
       "base_title": "Basic Information",
       "base_value": "OS: **{}**\nPython: **{}**\nBot Version: **{}**"
     }

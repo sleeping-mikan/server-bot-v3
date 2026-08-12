@@ -9,5 +9,5 @@ INITIAL_COMMAND_PERMISSION: dict[str, int] = {
     "help": 0, "backup create": 1, "backup apply": 3, "ip": 0,
     "logs": 1, "permission view": 0, "permission change": 4,
     "lang": 2, "tokengen": 1, "terminal set": 1, "terminal del": 1,
-    "update": 3, "announce embed": 4, "status": 0,
+    "update": 3, "announce embed": 4, "status": 0, "web url": 0,
 }
