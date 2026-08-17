@@ -24,6 +24,7 @@ from flask import (
     url_for,
 )
 
+from bot.embeds import embed_thumbnail_url
 from core.log_setup import LogManager
 from core.state import ctx
 from web.auth import is_valid_session, is_valid_token, require_permission
@@ -34,7 +35,7 @@ bp = Blueprint("main", __name__)
 @bp.route("/", methods=["GET", "POST"])
 def index():
     if is_valid_session():
-        return render_template("index.html")
+        return render_template("index.html", logo_url=embed_thumbnail_url)
     if "logout_reason" in session:
         flash(session.pop("logout_reason"))
     if request.method == "POST":

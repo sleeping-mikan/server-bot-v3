@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>server-bot</title>
-<link rel="icon" id="favicon" type="image/png" href="">
+<link rel="icon" id="favicon" type="image/png" href="{{ logo_url }}">
 <style>
 :root {
   --bg: #0d1117;
@@ -20,14 +20,14 @@
   --sidebar-w: 220px;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;height:100vh;overflow:hidden}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;display:flex;height:100vh;height:100dvh;overflow:hidden}
 
 /* ── Sidebar ── */
 .sidebar{width:var(--sidebar-w);background:var(--sidebar);border-right:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;transition:transform .2s}
 .sidebar-header{padding:16px;border-bottom:1px solid var(--border)}
 .sidebar-title{font-size:1.1rem;font-weight:700;color:var(--text)}
 .sidebar-sub{font-size:.75rem;color:var(--muted)}
-.sidebar-logo{width:28px;height:28px;border-radius:50%;object-fit:cover;margin-left:auto;flex-shrink:0;display:none}
+.sidebar-logo{width:28px;height:28px;border-radius:50%;object-fit:cover;margin-left:auto;flex-shrink:0}
 .sidebar-title-row{display:flex;align-items:center;gap:8px}
 nav{flex:1;padding:8px 0;overflow-y:auto}
 .nav-item{display:flex;align-items:center;gap:10px;padding:10px 16px;cursor:pointer;border-radius:6px;margin:2px 8px;font-size:.9rem;color:var(--muted);transition:background .15s,color .15s;user-select:none}
@@ -90,11 +90,11 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
 .files-table td{padding:8px 12px;border-bottom:1px solid #1c2128}
 .files-table tr:hover td{background:#1c2128}
 .file-icon{margin-right:6px}
-.file-name{cursor:pointer;color:var(--text)}
+.file-name{cursor:pointer;color:var(--text);overflow-wrap:anywhere}
 .file-name.dir{color:var(--accent);font-weight:500}
 .file-name:hover{text-decoration:underline}
-.file-size{color:var(--muted)}
-.row-actions{display:flex;gap:4px}
+.file-size{color:var(--muted);white-space:nowrap}
+.row-actions{display:flex;flex-wrap:wrap;gap:4px}
 
 /* ── Logs ── */
 .log-select{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:8px 12px;color:var(--text);font-size:.85rem;outline:none;min-width:200px}
@@ -116,7 +116,7 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
 
 /* ── Modal ── */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000}
-.modal-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;min-width:320px;max-width:480px;width:90%}
+.modal-box{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:24px;min-width:min(320px,90vw);max-width:480px;width:90%;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:1rem;font-weight:700;margin-bottom:16px}
 
 /* ── Toast ── */
@@ -135,6 +135,8 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
   .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:199}
   .sidebar-overlay.show{display:block}
   .page{padding:16px}
+  .col-type{display:none}
+  .files-table th,.files-table td{padding:8px 6px}
 }
 
 /* ── Scrollbar ── */
@@ -158,7 +160,7 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
   <div class="sidebar-header">
     <div class="sidebar-title-row">
       <div class="sidebar-title">server-bot</div>
-      <img id="sidebar-logo" class="sidebar-logo" src="" alt="">
+      <img id="sidebar-logo" class="sidebar-logo" src="{{ logo_url }}" alt="">
     </div>
     <div class="sidebar-sub">Management Panel</div>
   </div>
@@ -177,7 +179,7 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
   <div class="topbar">
     <button class="hamburger" onclick="toggleSidebar()">☰</button>
     <span class="topbar-title">server-bot</span>
-    <img id="topbar-logo" src="" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-left:4px;display:none">
+    <img id="topbar-logo" src="{{ logo_url }}" alt="" style="width:24px;height:24px;border-radius:50%;object-fit:cover;margin-left:4px">
   </div>
 
   <!-- ── Dashboard ── -->
@@ -243,7 +245,7 @@ nav{flex:1;padding:8px 0;overflow-y:auto}
         </div>
       </div>
       <table class="files-table">
-        <thead><tr><th>Name</th><th>Type</th><th>Size</th><th>Actions</th></tr></thead>
+        <thead><tr><th>Name</th><th class="col-type">Type</th><th>Size</th><th>Actions</th></tr></thead>
         <tbody id="files-tbody"><tr><td colspan="4" class="empty-state">Loading…</td></tr></tbody>
       </table>
     </div>
@@ -567,7 +569,7 @@ async function loadFiles(path) {
       const isZip = !isDir && e.name.toLowerCase().endsWith('.zip');
       return `<tr>
         <td><span class="file-icon">${icon}</span>${nameHtml}</td>
-        <td style="color:var(--muted)">${e.type}</td>
+        <td class="col-type" style="color:var(--muted)">${e.type}</td>
         <td class="file-size">${isDir ? '—' : fmtSize(e.size)}</td>
         <td><div class="row-actions">
           <button class="btn btn-sm" onclick="downloadFile('${esc(rel)}')">↓</button>
@@ -837,19 +839,6 @@ function confirmExit() {
     if (d) toast(d.message, d.ok ? 'success' : 'error');
   }, { okLabel: 'Exit', okClass: 'btn btn-red' });
 }
-
-// ══════════════════════════════════════════════════════════
-// Bot logo
-// ══════════════════════════════════════════════════════════
-(function applyBotLogo() {
-  const url = 'https://www.dropbox.com/scl/fi/a21ptajqddfkhilx1e4st/mi-2025.png?rlkey=29x0wvk1np17a3nvddth0jnyk&st=s6r4f2kr&dl=1';
-  document.getElementById('sidebar-logo').src = url;
-  document.getElementById('sidebar-logo').style.display = 'block';
-  document.getElementById('topbar-logo').src = url;
-  document.getElementById('topbar-logo').style.display = 'block';
-  const fav = document.getElementById('favicon');
-  if (fav) fav.href = url;
-})();
 
 // ══════════════════════════════════════════════════════════
 // Boot
